@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
-const RegisterPage = () => {
+const RegisterPage = ({navigation}) => {
   const [gender, setGender] = React.useState('');
   const [job, setJob] = React.useState('');
 
@@ -31,6 +31,12 @@ const RegisterPage = () => {
         <Picker.Item label="Designer" value="designer" />
         <Picker.Item label="Other" value="other" />
       </Picker>
+      <Text style={styles.loginPrompt}>
+        Already have account?{' '}
+        <Text style={styles.LoginLink} onPress={() => navigation.navigate('Login')}>
+          Login here
+        </Text>
+      </Text>
       <TouchableOpacity style={styles.button}>
         <Text style={styles.buttonText}>Register</Text>
       </TouchableOpacity>
@@ -81,6 +87,15 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  loginPrompt: {
+    marginTop: 20,
+    fontSize: 14,
+    color: '#333',
+  },
+  LoginLink: {
+    color: '#FF9A8A',
+    fontWeight: 'bold',
   },
 });
 
