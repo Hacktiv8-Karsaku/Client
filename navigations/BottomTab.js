@@ -11,14 +11,14 @@ const BottomTab = createBottomTabNavigator({
       if (route.name === "Home") {
         iconName = focused ? "home" : "home-outline";
       } else if (route.name === "Profile") {
-        iconName = focused ? "menu" : "menu-outline";
+        iconName = focused ? "person" : "person-outline";
       }
 
       return <Ionicons name={iconName} size={size} color={color} />;
     },
     tabBarLabel: () => null,
-    tabBarActiveTintColor: "#4267B2",
-    tabBarInactiveTintColor: "#4267B2",
+    tabBarActiveTintColor: "#FF9A8A",
+    tabBarInactiveTintColor: "#FF9A8A",
     headerStyle: {
       backgroundColor: "#f4511e",
     },

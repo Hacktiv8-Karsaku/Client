@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ImageCard from "../components/imageCard";
 
 const HomePage = () => {
   return (
@@ -24,9 +25,14 @@ const HomePage = () => {
           {/* what's new section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>What's New?</Text>
-            <View style={styles.cardLarge}>
-              <Text style={styles.cardText}>Graph Carousel</Text>
-            </View>
+            <ImageCard
+              imageUrl="https://inixindojogja.co.id/wp-content/uploads/2024/03/thumbnail-artikel-2024-03-27T101305.322.jpg"
+              title="New Feature Update"
+            />
+            <ImageCard
+              imageUrl="https://wallpapers.com/images/hd/doctor-back-view-6gzrdkpscth1bn3v.jpg"
+              title="Upcoming Events"
+            />
           </View>
 
           <View style={styles.navBar}>
@@ -41,7 +47,6 @@ const HomePage = () => {
             </TouchableOpacity>
           </View>
 
-          {/* preview to do list */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Preview To Do List</Text>
             <TouchableOpacity style={styles.card}>
@@ -61,23 +66,28 @@ const HomePage = () => {
             <Text style={styles.sectionTitle}>
               Healing Activity / Destination
             </Text>
-            <TouchableOpacity style={styles.card}>
-              <View style={styles.cardLarge}>
-                <Text style={styles.cardText}>Graph Carousel</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.card}>
-              <Text style={styles.cardText}>Note Activity</Text>
-            </TouchableOpacity>
+            <ImageCard
+              imageUrl="https://baysport.com/blog/wp-content/uploads/2019/07/backlit-beach-dawn-dusk-588561-1.jpg"
+              title="Relaxing Spots"
+            />
+            <ImageCard
+              imageUrl="https://i.ytimg.com/vi/YfJGplpTeTw/maxresdefault.jpg"
+              title="Best Destinations"
+            />
             <Text style={styles.seeAll}>See All</Text>
           </View>
 
           {/* food recomendation */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Food Recomendations</Text>
-            <View style={styles.cardLarge}>
-              <Text style={styles.cardText}>Graph or Data</Text>
-            </View>
+            <Text style={styles.sectionTitle}>Food Recommendations</Text>
+            <ImageCard
+              imageUrl="https://www.gbhamericanhospital.com/wp-content/uploads/2022/08/360_F_269205000_FAvWjPBVLruUEoVzmm3nNdch9mSFdzLj.jpg"
+              title="Healthy Meals"
+            />
+            <ImageCard
+              imageUrl="https://d1qumhq2zx0vxs.cloudfront.net/ArticleImages/HealthySnacks_09-03-2016_10-14-01-AM.jpg"
+              title="Nutritious Snacks"
+            />
             <Text style={styles.seeAll}>See All</Text>
           </View>
         </ScrollView>
@@ -141,16 +151,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderRadius: 8,
     marginBottom: 8,
-  },
-  cardLarge: {
-    height: 150,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cardText: {
-    color: "#333333",
   },
   seeAll: {
     textAlign: "right",
