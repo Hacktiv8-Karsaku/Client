@@ -75,10 +75,10 @@ export default function Login() {
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
         ) : (
-          <ActivityIndicator size="large" color="#1877F2" />
+          <ActivityIndicator size="large" color="#ff9a8a" />
         )}
         <Text style={styles.registerPrompt}>
-          Don't have any account?
+          Don't have any account?{" "}
           <Text
             style={styles.registerLink}
             onPress={() => navigation.navigate("Register")}
