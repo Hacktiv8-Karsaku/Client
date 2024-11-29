@@ -2,12 +2,17 @@ import React from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity } from 'react-native';
 
 const LoginPage = ({ navigation }) => {
+  const handleLogin = () => {
+    // Logika login bisa ditambahkan di sini, misalnya validasi
+    navigation.navigate('Home'); // Navigasi ke halaman home
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
       <TextInput style={styles.input} placeholder="Email" keyboardType="email-address" />
       <TextInput style={styles.input} placeholder="Password" secureTextEntry={true} />
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
       <Text style={styles.registerPrompt}>
