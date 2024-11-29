@@ -1,5 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Home from "../screens/Home";
+import Profile from "../screens/Profile";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 const BottomTab = createBottomTabNavigator({
@@ -9,6 +10,8 @@ const BottomTab = createBottomTabNavigator({
 
       if (route.name === "Home") {
         iconName = focused ? "home" : "home-outline";
+      } else if (route.name === "Profile") {
+        iconName = focused ? "menu" : "menu-outline";
       }
 
       return <Ionicons name={iconName} size={size} color={color} />;
@@ -27,6 +30,12 @@ const BottomTab = createBottomTabNavigator({
   screens: {
     Home: {
       screen: Home,
+      options: {
+        headerShown: false,
+      },
+    },
+    Profile: {
+      screen: Profile,
       options: {
         headerShown: false,
       },

@@ -3,6 +3,7 @@ import { useIsSignedIn, useIsSignedOut } from "../context/AuthContext";
 import Login from "../screens/Login";
 import Register from "../screens/Register";
 import BottomTab from "./BottomTab";
+import Profile from "../screens/Profile";
 
 const RootStack = createNativeStackNavigator({
   screenOptions: {
@@ -22,6 +23,12 @@ const RootStack = createNativeStackNavigator({
           screen: BottomTab,
           options: {
             title: "Karsaku",
+          },
+        },
+        Profile: {
+          screen: Profile,
+          options: {
+            title: "Profile",
           },
         },
       },
