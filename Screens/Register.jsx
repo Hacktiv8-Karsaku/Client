@@ -13,7 +13,6 @@ const RegisterPage = ({navigation}) => {
       <TextInput style={styles.input} placeholder="Username" />
       <TextInput style={styles.input} placeholder="Email" keyboardType="email-address" />
       <TextInput style={styles.input} placeholder="Password" secureTextEntry={true} />
-      <TextInput style={styles.input} placeholder="Confirm Password" secureTextEntry={true} />
       <Picker
         selectedValue={gender}
         style={styles.picker}
@@ -21,15 +20,6 @@ const RegisterPage = ({navigation}) => {
         <Picker.Item label="Select Gender" value="" />
         <Picker.Item label="Male" value="male" />
         <Picker.Item label="Female" value="female" />
-      </Picker>
-      <Picker
-        selectedValue={job}
-        style={styles.picker}
-        onValueChange={(itemValue) => setJob(itemValue)}>
-        <Picker.Item label="Select Job" value="" />
-        <Picker.Item label="Developer" value="developer" />
-        <Picker.Item label="Designer" value="designer" />
-        <Picker.Item label="Other" value="other" />
       </Picker>
       <Text style={styles.loginPrompt}>
         Already have account?{' '}
