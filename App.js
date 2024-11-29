@@ -1,18 +1,42 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import LoginPage from './Screens/Login';
-import RegisterPage from './Screens/Register';
+import { createStaticNavigation } from "@react-navigation/native";
+import RootStack from "./navigations/StackNav";
+import { ApolloProvider } from "@apollo/client";
+import client from "./config/apollo";
+import { AuthContext } from "./context/AuthContext";
+import { useEffect, useState } from "react";
 
-const Stack = createStackNavigator();
+const Navigation = createStaticNavigation(RootStack);
+import * as SecureStore from "expo-secure-store";
+import { ActivityIndicator, View } from "react-native";
 
 export default function App() {
+  const [loading, setLoading] = useState(true);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  useEffect(() => {
+    async function checkToken() {
+      const token = await SecureStore.getItemAsync("access_token");
+      if (token) {
+        setIsSignedIn(true);
+      }
+      setLoading(false);
+    }
+    checkToken();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginPage} />
-        <Stack.Screen name="Register" component={RegisterPage} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ApolloProvider client={client}>
+      <AuthContext.Provider value={{ isSignedIn, setIsSignedIn }}>
+        <Navigation />
+      </AuthContext.Provider>
+    </ApolloProvider>
   );
 }
