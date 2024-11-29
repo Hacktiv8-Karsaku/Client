@@ -15,7 +15,7 @@ const HomePage = () => {
       <View style={{ flex: 1 }}>
         <ScrollView style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.greeting}>Hello, username 👋</Text>
+            <Text style={styles.greeting}>Welcome, username 👋</Text>
             <TouchableOpacity style={styles.circle}>
               <View style={styles.circle} />
             </TouchableOpacity>
