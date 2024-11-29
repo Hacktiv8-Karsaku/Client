@@ -23,6 +23,7 @@ const RootStack = createNativeStackNavigator({
           screen: BottomTab,
           options: {
             title: "Karsaku",
+            headerShown: false
           },
         },
         Profile: {
