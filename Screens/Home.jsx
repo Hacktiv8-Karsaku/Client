@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@apollo/client";
 import ImageCard from "../components/ImageCard";
+import MapDisplay from "../components/MapView";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
 
 const HomePage = () => {
@@ -28,17 +29,14 @@ const HomePage = () => {
             </TouchableOpacity>
           </View>
 
-          {/* What's New section */}
+          {/* Places Section with Map */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>What's New?</Text>
-            <ImageCard
-              imageUrl="https://inixindojogja.co.id/wp-content/uploads/2024/03/thumbnail-artikel-2024-03-27T101305.322.jpg"
-              title="New Feature Update"
-            />
-            <ImageCard
-              imageUrl="https://wallpapers.com/images/hd/doctor-back-view-6gzrdkpscth1bn3v.jpg"
-              title="Upcoming Events"
-            />
+            <Text style={styles.sectionTitle}>Healing Places</Text>
+            {loading ? (
+              <ActivityIndicator size="large" color="#FF9A8A" />
+            ) : (
+              <MapDisplay places={places} />
+            )}
           </View>
 
           <View style={styles.navBar}>
@@ -68,19 +66,28 @@ const HomePage = () => {
             <Text style={styles.seeAll}>See All</Text>
           </View>
 
-          {/* Places Section */}
+          {/* Places Cards Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               Healing Activity / Destination
             </Text>
-            {places?.map((place, index) => (
-              <ImageCard
-                key={index}
-                imageUrl="https://baysport.com/blog/wp-content/uploads/2019/07/backlit-beach-dawn-dusk-588561-1.jpg"
-                title={place.name}
-              />
-            ))}
-            <Text style={styles.seeAll}>See All</Text>
+            {loading ? (
+              <ActivityIndicator size="large" color="#FF9A8A" />
+            ) : places && places.length > 0 ? (
+              <>
+                {places.map((place, index) => (
+                  <ImageCard
+                    key={index}
+                    imageUrl="https://baysport.com/blog/wp-content/uploads/2019/07/backlit-beach-dawn-dusk-588561-1.jpg"
+                    title={place.name}
+                    description={place.description}
+                  />
+                ))}
+                <Text style={styles.seeAll}>See All</Text>
+              </>
+            ) : (
+              <Text>No places available</Text>
+            )}
           </View>
 
           {/* Foods Section */}
@@ -160,6 +167,11 @@ const styles = StyleSheet.create({
     textAlign: "right",
     color: "#FF9A8A",
     marginTop: 8,
+  },
+  description: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    marginTop: 4,
   },
 });
 

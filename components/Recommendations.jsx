@@ -1,21 +1,29 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { gql, useQuery } from '@apollo/client';
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from "react-native";
+import { useQuery } from "@apollo/client";
+import { GET_RECOMMENDATIONS } from "../graphql/queries";
+import MapDisplay from "./MapView";
 
-const GET_RECOMMENDATIONS = gql`
-  query GetUserRecommendations {
-    getUserProfile {
-      recommendations {
-        todoList
-        places {
-          name
-          description
-        }
-        foods
-      }
-    }
-  }
-`;
+const PlaceCard = ({ place }) => (
+  <TouchableOpacity style={styles.placeCard}>
+    <Image
+      source={{ uri: "https://via.placeholder.com/150" }}
+      style={styles.placeImage}
+    />
+    <View style={styles.placeInfo}>
+      <Text style={styles.placeName}>{place.name}</Text>
+      <Text style={styles.placeDescription}>{place.description}</Text>
+    </View>
+  </TouchableOpacity>
+);
 
 const Recommendations = () => {
   const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
@@ -23,7 +31,8 @@ const Recommendations = () => {
   if (loading) return <ActivityIndicator size="large" color="#FF9A8A" />;
   if (error) return <Text>Error loading recommendations</Text>;
 
-  const { todoList, places, foods } = data?.getUserProfile?.recommendations || {};
+  const { todoList, places, foods } =
+    data?.getUserProfile?.recommendations || {};
 
   return (
     <ScrollView style={styles.container}>
@@ -31,8 +40,8 @@ const Recommendations = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Today's To-Do List</Text>
         {todoList?.map((todo, index) => (
-          <TouchableOpacity key={index} style={styles.card}>
-            <Text style={styles.cardText}>{todo}</Text>
+          <TouchableOpacity key={index} style={styles.todoCard}>
+            <Text style={styles.todoText}>{todo}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -40,6 +49,7 @@ const Recommendations = () => {
       {/* Places Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recommended Places</Text>
+        <MapDisplay places={places} />
         {places?.map((place, index) => (
           <TouchableOpacity key={index} style={styles.cardLarge}>
             <Text style={styles.cardTitle}>{place.name}</Text>
@@ -52,8 +62,8 @@ const Recommendations = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Food Recommendations</Text>
         {foods?.map((food, index) => (
-          <TouchableOpacity key={index} style={styles.card}>
-            <Text style={styles.cardText}>{food}</Text>
+          <TouchableOpacity key={index} style={styles.foodCard}>
+            <Text style={styles.foodText}>{food}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -65,53 +75,65 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: "#fff",
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#4267B2',
+    fontWeight: "bold",
+    marginBottom: 16,
+    color: "#333",
   },
-  card: {
-    backgroundColor: 'white',
+  // Todo Cards
+  todoCard: {
+    backgroundColor: "#F5F5F5",
     padding: 16,
     borderRadius: 8,
     marginBottom: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
-  cardLarge: {
-    backgroundColor: 'white',
+  todoText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  // Place Cards
+  placeCard: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: 8,
+    marginBottom: 16,
+    overflow: "hidden",
+  },
+  placeImage: {
+    width: "100%",
+    height: 150,
+    backgroundColor: "#E1E1E1",
+  },
+  placeInfo: {
+    padding: 16,
+  },
+  placeName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+    color: "#333",
+  },
+  placeDescription: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 20,
+  },
+  // Food Cards
+  foodCard: {
+    backgroundColor: "#F5F5F5",
     padding: 16,
     borderRadius: 8,
-    marginBottom: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    marginBottom: 8,
   },
-  cardTitle: {
+  foodText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#4267B2',
-  },
-  cardText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    color: "#333",
   },
 });
 
-export default Recommendations; 
+export default Recommendations;
