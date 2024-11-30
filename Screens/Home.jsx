@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@apollo/client";
@@ -17,6 +18,23 @@ const HomePage = () => {
   const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
   const { todoList, places, foods } =
     data?.getUserProfile?.recommendations || {};
+
+  const renderPlaceCard = ({ item }) => (
+    <ImageCard
+      imageUrl="https://baysport.com/blog/wp-content/uploads/2019/07/backlit-beach-dawn-dusk-588561-1.jpg"
+      title={item.name}
+      description={item.description}
+      style={styles.horizontalCard}
+    />
+  );
+
+  const renderFoodCard = ({ item }) => (
+    <ImageCard
+      imageUrl="https://www.gbhamericanhospital.com/wp-content/uploads/2022/08/360_F_269205000_FAvWjPBVLruUEoVzmm3nNdch9mSFdzLj.jpg"
+      title={item}
+      style={styles.horizontalCard}
+    />
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -39,18 +57,6 @@ const HomePage = () => {
             )}
           </View>
 
-          <View style={styles.navBar}>
-            <TouchableOpacity style={styles.navButton}>
-              <Text style={styles.navText}>To Do List</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navButton}>
-              <Text style={styles.navText}>Mood Tracker</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navButton}>
-              <Text style={styles.navText}>Calories Tracker</Text>
-            </TouchableOpacity>
-          </View>
-
           {/* Todo List Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Preview To Do List</Text>
@@ -66,7 +72,7 @@ const HomePage = () => {
             <Text style={styles.seeAll}>See All</Text>
           </View>
 
-          {/* Places Cards Section */}
+          {/* Places Cards Section - Horizontal Scroll */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               Healing Activity / Destination
@@ -75,14 +81,14 @@ const HomePage = () => {
               <ActivityIndicator size="large" color="#FF9A8A" />
             ) : places && places.length > 0 ? (
               <>
-                {places.map((place, index) => (
-                  <ImageCard
-                    key={index}
-                    imageUrl="https://baysport.com/blog/wp-content/uploads/2019/07/backlit-beach-dawn-dusk-588561-1.jpg"
-                    title={place.name}
-                    description={place.description}
-                  />
-                ))}
+                <FlatList
+                  data={places}
+                  renderItem={renderPlaceCard}
+                  keyExtractor={(item, index) => index.toString()}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalScrollContainer}
+                />
                 <Text style={styles.seeAll}>See All</Text>
               </>
             ) : (
@@ -90,16 +96,17 @@ const HomePage = () => {
             )}
           </View>
 
-          {/* Foods Section */}
+          {/* Foods Section - Horizontal Scroll */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Food Recommendations</Text>
-            {foods?.slice(0, 2).map((food, index) => (
-              <ImageCard
-                key={index}
-                imageUrl="https://www.gbhamericanhospital.com/wp-content/uploads/2022/08/360_F_269205000_FAvWjPBVLruUEoVzmm3nNdch9mSFdzLj.jpg"
-                title={food}
-              />
-            ))}
+            <FlatList
+              data={foods?.slice(0, 2)}
+              renderItem={renderFoodCard}
+              keyExtractor={(item, index) => index.toString()}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScrollContainer}
+            />
             <Text style={styles.seeAll}>See All</Text>
           </View>
         </ScrollView>
@@ -131,20 +138,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF9A8A",
     borderRadius: 20,
   },
-  navBar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 16,
-  },
-  navButton: {
-    padding: 8,
-    backgroundColor: "#FF9A8A",
-    borderRadius: 8,
-  },
-  navText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-  },
   section: {
     marginBottom: 24,
   },
@@ -172,6 +165,13 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     marginTop: 4,
+  },
+  horizontalScrollContainer: {
+    paddingHorizontal: 8,
+  },
+  horizontalCard: {
+    marginRight: 12,
+    width: 250,
   },
 });
 
