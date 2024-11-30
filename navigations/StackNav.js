@@ -1,56 +1,67 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useIsSignedIn, useIsSignedOut } from "../context/AuthContext";
+import { NavigationContainer } from '@react-navigation/native';
 import Login from "../screens/Login";
 import Register from "../screens/Register";
+import Questions from "../screens/Questions";
 import BottomTab from "./BottomTab";
 import Profile from "../screens/Profile";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
-const RootStack = createNativeStackNavigator({
-  screenOptions: {
-    headerStyle: {
-      backgroundColor: "white",
-    },
-    headerTintColor: "#4267B2",
-    headerTitleStyle: {
-      fontWeight: "bold",
-    },
-  },
-  groups: {
-    SignedIn: {
-      if: useIsSignedIn,
-      screens: {
-        Home: {
-          screen: BottomTab,
-          options: {
-            title: "Karsaku",
-          },
-        },
-        Profile: {
-          screen: Profile,
-          options: {
-            title: "Profile",
-          },
-        },
-      },
-    },
-    SIgnedOut: {
-      if: useIsSignedOut,
-      screens: {
-        Login: {
-          screen: Login,
-          options: {
-            headerShown: false,
-          },
-        },
-        Register: {
-          screen: Register,
-          options: {
-            headerShown: false,
-          },
-        },
-      },
-    },
-  },
-});
+const Stack = createNativeStackNavigator();
 
-export default RootStack;
+export default function RootStack() {
+  const { isSignedIn } = useContext(AuthContext);
+  
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: "white",
+          },
+          headerTintColor: "#4267B2",
+          headerTitleStyle: {
+            fontWeight: "bold",
+          },
+        }}
+      >
+        {isSignedIn ? (
+          <>
+            <Stack.Screen 
+              name="Questions" 
+              component={Questions}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Home" 
+              component={BottomTab}
+              options={{ 
+                title: "Karsaku",
+                headerShown: false 
+              }}
+            />
+            <Stack.Screen 
+              name="Profile" 
+              component={Profile}
+              options={{ title: "Profile" }}
+            />
+          </>
+        ) : (
+          <>
+            <Stack.Screen 
+              name="Login" 
+              component={Login}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Register" 
+              component={Register}
+              options={{ headerShown: false }}
+            />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
