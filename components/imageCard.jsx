@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 
-const ImageCard = ({ imageUrl, title, description }) => {
+const ImageCard = ({ imageUrl, title }) => {
   return (
     <TouchableOpacity style={styles.card}>
       <Image
@@ -11,7 +11,6 @@ const ImageCard = ({ imageUrl, title, description }) => {
       />
       <View style={styles.overlay}>
         <Text style={styles.title}>{title}</Text>
-        {description && <Text style={styles.description}>{description}</Text>}
       </View>
     </TouchableOpacity>
   );
@@ -40,11 +39,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  description: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    marginTop: 4,
   },
 });
 
