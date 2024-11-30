@@ -12,7 +12,7 @@ export default function BottomTab() {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === "Home") {
+          if (route.name === "HomeScreen") {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "Profile") {
             iconName = focused ? "menu" : "menu-outline";

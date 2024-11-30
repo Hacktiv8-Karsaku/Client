@@ -7,6 +7,9 @@ import BottomTab from "./BottomTab";
 import Profile from "../screens/Profile";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import VideoCall from "../screens/videoCall";
+import WaitingRoom from "../screens/waitingRoom";
+import DoctorSelection from "../screens/DoctorSelection";
 
 const Stack = createNativeStackNavigator();
 
@@ -45,6 +48,27 @@ export default function RootStack() {
               name="Profile"
               component={Profile}
               options={{ title: "Profile" }}
+            />
+            <Stack.Screen 
+              name="DoctorSelection" 
+              component={DoctorSelection}
+              options={{
+                title: 'Select Doctor',
+                headerShown: true
+              }}
+            />
+            <Stack.Screen
+              name="WaitingRoom"
+              component={WaitingRoom}
+              options={{ 
+                title: "Waiting Room",
+                headerShown: true 
+              }}
+            />
+            <Stack.Screen
+              name="VideoCall"
+              component={VideoCall}
+              options={{ headerShown: false }}
             />
           </>
         ) : (

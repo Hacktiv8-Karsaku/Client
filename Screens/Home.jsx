@@ -6,16 +6,20 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@apollo/client";
-import ImageCard from "../components/ImageCard";
+import ImageCard from "../components/imageCard";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
+import { useNavigation } from '@react-navigation/native';
+import * as SecureStore from 'expo-secure-store';
 
 const HomePage = () => {
   const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
   const { todoList, places, foods } =
     data?.getUserProfile?.recommendations || {};
+  const navigation = useNavigation();
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -50,6 +54,22 @@ const HomePage = () => {
             </TouchableOpacity>
             <TouchableOpacity style={styles.navButton}>
               <Text style={styles.navText}>Calories Tracker</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.videoCallButton}
+              onPress={async () => {
+                const userId = await SecureStore.getItemAsync("user_id");
+                if (userId) {
+                  navigation.navigate("DoctorSelection");
+                } else {
+                  Alert.alert("Error", "User not logged in");
+                }
+              }}
+            >
+              <Text style={styles.videoCallButtonText}>Start Video Consultation</Text>
             </TouchableOpacity>
           </View>
 
@@ -160,6 +180,18 @@ const styles = StyleSheet.create({
     textAlign: "right",
     color: "#FF9A8A",
     marginTop: 8,
+  },
+  videoCallButton: {
+    backgroundColor: '#4267B2',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  videoCallButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 
