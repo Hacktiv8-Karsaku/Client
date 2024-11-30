@@ -1,11 +1,8 @@
-import { createStaticNavigation } from "@react-navigation/native";
 import RootStack from "./navigations/StackNav";
 import { ApolloProvider } from "@apollo/client";
 import client from "./config/apollo";
 import { AuthContext } from "./context/AuthContext";
 import { useEffect, useState } from "react";
-
-const Navigation = createStaticNavigation(RootStack);
 import * as SecureStore from "expo-secure-store";
 import { ActivityIndicator, View } from "react-native";
 
@@ -35,7 +32,7 @@ export default function App() {
   return (
     <ApolloProvider client={client}>
       <AuthContext.Provider value={{ isSignedIn, setIsSignedIn }}>
-        <Navigation />
+        <RootStack />
       </AuthContext.Provider>
     </ApolloProvider>
   );
