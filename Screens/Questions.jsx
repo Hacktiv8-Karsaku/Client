@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
 import { gql, useMutation } from "@apollo/client";
 import { useNavigation } from "@react-navigation/native";
+import StressLv from "../components/StressLv";
 
 const UPDATE_USER_PREFERENCES = gql`
   mutation UpdateUserPreferences(
@@ -37,7 +37,7 @@ export default function Questions() {
   const navigation = useNavigation();
   const [job, setJob] = useState("");
   const [activities, setActivities] = useState("");
-  const [stressLevel, setStressLevel] = useState(1);
+  const [stressLevel, setStressLevel] = useState(5);
   const [preferredFoods, setPreferredFoods] = useState("");
   const [avoidedFoods, setAvoidedFoods] = useState("");
 
@@ -49,7 +49,7 @@ export default function Questions() {
         variables: {
           job,
           dailyActivities: activities.split(",").map((item) => item.trim()),
-          stressLevel: parseInt(stressLevel),
+          stressLevel,
           preferredFoods: preferredFoods.split(",").map((item) => item.trim()),
           avoidedFoods: avoidedFoods.split(",").map((item) => item.trim()),
         },
@@ -64,7 +64,7 @@ export default function Questions() {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Help us personalize your experience</Text>
 
-      <Text style={styles.label}>What's your job?</Text>
+      <Text style={styles.label}>What is your job?</Text>
       <TextInput
         style={styles.input}
         value={job}
@@ -81,16 +81,8 @@ export default function Questions() {
         multiline
       />
 
-      <Text style={styles.label}>Stress Level (1-10)</Text>
-      <Picker
-        selectedValue={stressLevel}
-        onValueChange={(value) => setStressLevel(value)}
-        style={styles.picker}
-      >
-        {[...Array(10)].map((_, i) => (
-          <Picker.Item key={i + 1} label={`${i + 1}`} value={i + 1} />
-        ))}
-      </Picker>
+      {/* Stress Level Component */}
+      <StressLv value={stressLevel} onChange={setStressLevel} />
 
       <Text style={styles.label}>Preferred Foods</Text>
       <TextInput
@@ -141,10 +133,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderWidth: 1,
     borderColor: "#FF9A8A",
-  },
-  picker: {
-    backgroundColor: "#FFF",
-    marginBottom: 15,
   },
   button: {
     backgroundColor: "#FF9A8A",
