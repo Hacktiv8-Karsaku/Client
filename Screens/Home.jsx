@@ -5,28 +5,39 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useQuery } from '@apollo/client';
+import ImageCard from "../components/ImageCard";
+import { GET_RECOMMENDATIONS } from '../graphql/queries';
 
 const HomePage = () => {
+  const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
+  const { todoList, places, foods } = data?.getUserProfile?.recommendations || {};
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      {/* greetings and profile pic */}
       <View style={{ flex: 1 }}>
         <ScrollView style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.greeting}>Welcome, username 👋</Text>
+            <Text style={styles.greeting}>Welcome to Karsaku 👋</Text>
             <TouchableOpacity style={styles.circle}>
               <View style={styles.circle} />
             </TouchableOpacity>
           </View>
 
-          {/* what's new section */}
+          {/* What's New section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>What's New?</Text>
-            <View style={styles.cardLarge}>
-              <Text style={styles.cardText}>Graph Carousel</Text>
-            </View>
+            <ImageCard
+              imageUrl="https://inixindojogja.co.id/wp-content/uploads/2024/03/thumbnail-artikel-2024-03-27T101305.322.jpg"
+              title="New Feature Update"
+            />
+            <ImageCard
+              imageUrl="https://wallpapers.com/images/hd/doctor-back-view-6gzrdkpscth1bn3v.jpg"
+              title="Upcoming Events"
+            />
           </View>
 
           <View style={styles.navBar}>
@@ -41,43 +52,44 @@ const HomePage = () => {
             </TouchableOpacity>
           </View>
 
-          {/* preview to do list */}
+          {/* Todo List Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Preview To Do List</Text>
-            <TouchableOpacity style={styles.card}>
-              <Text style={styles.cardText}>To do list 1</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.card}>
-              <Text style={styles.cardText}>To do list 2</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.card}>
-              <Text style={styles.cardText}>To do list 3</Text>
-            </TouchableOpacity>
+            {loading ? (
+              <ActivityIndicator size="large" color="#FF9A8A" />
+            ) : (
+              todoList?.slice(0, 3).map((todo, index) => (
+                <TouchableOpacity key={index} style={styles.card}>
+                  <Text style={styles.cardText}>{todo}</Text>
+                </TouchableOpacity>
+              ))
+            )}
             <Text style={styles.seeAll}>See All</Text>
           </View>
 
-          {/* preview healing act */}
+          {/* Places Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              Healing Activity / Destination
-            </Text>
-            <TouchableOpacity style={styles.card}>
-              <View style={styles.cardLarge}>
-                <Text style={styles.cardText}>Graph Carousel</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.card}>
-              <Text style={styles.cardText}>Note Activity</Text>
-            </TouchableOpacity>
+            <Text style={styles.sectionTitle}>Healing Activity / Destination</Text>
+            {places?.map((place, index) => (
+              <ImageCard
+                key={index}
+                imageUrl="https://baysport.com/blog/wp-content/uploads/2019/07/backlit-beach-dawn-dusk-588561-1.jpg"
+                title={place.name}
+              />
+            ))}
             <Text style={styles.seeAll}>See All</Text>
           </View>
 
-          {/* food recomendation */}
+          {/* Foods Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Food Recomendations</Text>
-            <View style={styles.cardLarge}>
-              <Text style={styles.cardText}>Graph or Data</Text>
-            </View>
+            <Text style={styles.sectionTitle}>Food Recommendations</Text>
+            {foods?.slice(0, 2).map((food, index) => (
+              <ImageCard
+                key={index}
+                imageUrl="https://www.gbhamericanhospital.com/wp-content/uploads/2022/08/360_F_269205000_FAvWjPBVLruUEoVzmm3nNdch9mSFdzLj.jpg"
+                title={food}
+              />
+            ))}
             <Text style={styles.seeAll}>See All</Text>
           </View>
         </ScrollView>
@@ -87,10 +99,6 @@ const HomePage = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
@@ -141,13 +149,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderRadius: 8,
     marginBottom: 8,
-  },
-  cardLarge: {
-    height: 150,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
   },
   cardText: {
     color: "#333333",
