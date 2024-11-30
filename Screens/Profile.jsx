@@ -1,9 +1,24 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React from "react";
+import {
+  View,
+  Text,
+  Button,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
+import * as SecureStore from "expo-secure-store";
 
 const ProfilePage = () => {
+  const { setIsSignedIn } = useContext(AuthContext);
+  const handleLogout = async () => {
+    await SecureStore.deleteItemAsync("access_token");
+    setIsSignedIn(false);
+  };
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.container}>
@@ -14,7 +29,9 @@ const ProfilePage = () => {
         </View>
         <View style={styles.profileContainer}>
           <Image
-            source={{ uri: 'https://i.pinimg.com/736x/87/06/ee/8706ee1d850898c03d1e0a845df81040.jpg' }}
+            source={{
+              uri: "https://i.pinimg.com/736x/87/06/ee/8706ee1d850898c03d1e0a845df81040.jpg",
+            }}
             style={styles.profileImage}
           />
           <Text style={styles.name}>Sukijan Wamena</Text>
@@ -40,33 +57,52 @@ const ProfilePage = () => {
           <View style={styles.placeToGoGrid}>
             <TouchableOpacity style={styles.placeToGoGrid}>
               <Image
-                source={{ uri: 'https://cdn.idntimes.com/content-images/community/2022/09/tempat-wisata-dunia-yang-bikin-pengunjung-bahagia-tempat-wisata-dunia-paling-bahagia-bali-destinasi-wisata-paling-bahagia-bali-indoensia-wisata-9cde86371d7fc78c91ae80a6ffab250e-404157d92ecd7d9e35661cbe798808dc.jpg' }}
+                source={{
+                  uri: "https://cdn.idntimes.com/content-images/community/2022/09/tempat-wisata-dunia-yang-bikin-pengunjung-bahagia-tempat-wisata-dunia-paling-bahagia-bali-destinasi-wisata-paling-bahagia-bali-indoensia-wisata-9cde86371d7fc78c91ae80a6ffab250e-404157d92ecd7d9e35661cbe798808dc.jpg",
+                }}
                 style={styles.placeToGo}
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.placeToGoGrid}>
               <Image
-                source={{ uri: 'https://cdn1.sisiplus.co.id/media/sisiplus/asset/uploads/artikel/g2OEbKl2aTEIp1x5hFNYEE9ad615uVenBexDAcVW.jpg' }}
+                source={{
+                  uri: "https://cdn1.sisiplus.co.id/media/sisiplus/asset/uploads/artikel/g2OEbKl2aTEIp1x5hFNYEE9ad615uVenBexDAcVW.jpg",
+                }}
                 style={styles.placeToGo}
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.placeToGoGrid}>
               <Image
-                source={{ uri: 'https://img.inews.co.id/media/600/files/networks/2024/05/13/d4b74_rans-nusantara-hebat.jpeg' }}
+                source={{
+                  uri: "https://img.inews.co.id/media/600/files/networks/2024/05/13/d4b74_rans-nusantara-hebat.jpeg",
+                }}
                 style={styles.placeToGo}
               />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.placeToGoGrid}>
               <Image
-                source={{ uri: 'https://media.disneylandparis.com/d4th/en-int/images/HD13302_2_2050jan01_world_disneyland-park-dlp-website-visual_5-2_tcm787-248638.jpg?w=1920' }}
+                source={{
+                  uri: "https://media.disneylandparis.com/d4th/en-int/images/HD13302_2_2050jan01_world_disneyland-park-dlp-website-visual_5-2_tcm787-248638.jpg?w=1920",
+                }}
                 style={styles.placeToGo}
               />
             </TouchableOpacity>
-
           </View>
           <Text style={styles.viewAll}>View all</Text>
         </View>
+      </View>
+
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ textAlign: "center", fontSize: 20, fontWeight: "bold" }}>
+          Ini Profile
+        </Text>
+        <Button
+          title="logout"
+          onPress={() => {
+            handleLogout();
+          }}
+        />
       </View>
     </SafeAreaView>
   );
@@ -75,21 +111,21 @@ const ProfilePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF5F3',
+    backgroundColor: "#FFF5F3",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   profileContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 32,
   },
   profileImage: {
@@ -99,39 +135,39 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 12,
   },
   level: {
     fontSize: 16,
-    color: '#888',
+    color: "#888",
     marginTop: 4,
   },
   pointsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginVertical: 24,
-    backgroundColor: '#FFF5F3',
+    backgroundColor: "#FFF5F3",
   },
   pointsItem: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   pointsText: {
     fontSize: 16,
     marginTop: 4,
-    color: '#FF9A8A',
+    color: "#FF9A8A",
   },
   placeToGoContainer: {
     marginHorizontal: 16,
   },
   placeToGoTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 12,
   },
   placeToGoGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   placeToGo: {
     width: 75,
@@ -140,8 +176,8 @@ const styles = StyleSheet.create({
   },
   viewAll: {
     fontSize: 14,
-    color: '#FF9A8A',
-    textAlign: 'right',
+    color: "#FF9A8A",
+    textAlign: "right",
     marginTop: 8,
   },
 });
