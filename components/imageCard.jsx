@@ -1,37 +1,45 @@
-import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import React from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 
 const ImageCard = ({ imageUrl, title }) => {
   return (
-    <View style={styles.imageCard}>
-      <Image source={{ uri: imageUrl }} style={styles.image} />
-      {title && <Text style={styles.imageTitle}>{title}</Text>}
-    </View>
+    <TouchableOpacity style={styles.card}>
+      <Image
+        source={{ uri: imageUrl }}
+        style={styles.image}
+        resizeMode="cover"
+      />
+      <View style={styles.overlay}>
+        <Text style={styles.title}>{title}</Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  imageCard: {
+  card: {
     height: 150,
     borderRadius: 8,
-    overflow: "hidden",
     marginBottom: 8,
+    overflow: 'hidden',
   },
   image: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
-  imageTitle: {
-    position: "absolute",
-    bottom: 10,
-    left: 10,
-    color: "#FFFFFF",
-    fontWeight: "bold",
+  overlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 8,
+  },
+  title: {
+    color: '#FFFFFF',
     fontSize: 16,
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    fontWeight: 'bold',
   },
 });
 
-export default ImageCard;
+export default ImageCard; 
