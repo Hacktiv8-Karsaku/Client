@@ -1,13 +1,16 @@
-import * as React from "react";
+import { createContext, useContext } from "react";
 
-export const AuthContext = React.createContext();
+export const AuthContext = createContext({
+  isSignedIn: false,
+  setIsSignedIn: () => {},
+});
 
-export function useIsSignedIn() {
-  const { isSignedIn } = React.useContext(AuthContext);
+export const useIsSignedIn = () => {
+  const { isSignedIn } = useContext(AuthContext);
   return isSignedIn;
-}
+};
 
-export function useIsSignedOut() {
-  const { isSignedIn } = React.useContext(AuthContext);
+export const useIsSignedOut = () => {
+  const { isSignedIn } = useContext(AuthContext);
   return !isSignedIn;
-}
+};
