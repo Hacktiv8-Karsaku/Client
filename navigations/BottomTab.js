@@ -2,6 +2,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Home from "../screens/Home";
 import Profile from "../screens/Profile";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { BlurView } from "@react-native-community/blur";
+import { View, StyleSheet } from "react-native";
 
 const Tab = createBottomTabNavigator();
 
@@ -15,14 +17,15 @@ export default function BottomTab() {
           if (route.name === "Home") {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "Profile") {
-            iconName = focused ? "menu" : "menu-outline";
+            iconName = focused ? "person" : "person-outline";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarLabel: () => null,
-        tabBarActiveTintColor: "#4267B2",
-        tabBarInactiveTintColor: "#4267B2",
+        tabBarActiveTintColor: "#FF9A8A",
+        tabBarInactiveTintColor: "#FF9A8A",
+        tabBarStyle: [styles.tabBar], 
         headerStyle: {
           backgroundColor: "#f4511e",
         },
@@ -45,3 +48,14 @@ export default function BottomTab() {
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    position: "absolute",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    borderTopWidth: 0, 
+    elevation: 0, 
+    height: 50,
+    overflow: "hidden", 
+  },
+});
