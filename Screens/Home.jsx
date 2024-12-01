@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
@@ -6,17 +6,37 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@apollo/client";
 import ImageCard from "../components/imageCard";
 import MapDisplay from "../components/MapView";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
+import TodoList from '../components/TodoList';
 
 const HomePage = () => {
   const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
   const { todoList, places, foods } =
     data?.getUserProfile?.recommendations || {};
+  const [todoListVisible, setTodoListVisible] = useState(false);
+
+  const renderPlaceCard = ({ item }) => (
+    <ImageCard
+      imageUrl="https://baysport.com/blog/wp-content/uploads/2019/07/backlit-beach-dawn-dusk-588561-1.jpg"
+      title={item.name}
+      description={item.description}
+      style={styles.horizontalCard}
+    />
+  );
+
+  const renderFoodCard = ({ item }) => (
+    <ImageCard
+      imageUrl="https://www.gbhamericanhospital.com/wp-content/uploads/2022/08/360_F_269205000_FAvWjPBVLruUEoVzmm3nNdch9mSFdzLj.jpg"
+      title={item}
+      style={styles.horizontalCard}
+    />
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -63,10 +83,15 @@ const HomePage = () => {
                 </TouchableOpacity>
               ))
             )}
-            <Text style={styles.seeAll}>See All</Text>
+            <Text 
+              style={styles.seeAll}
+              onPress={() => setTodoListVisible(true)}
+            >
+              See All
+            </Text>
           </View>
 
-          {/* Places Cards Section */}
+          {/* Places Cards Section - Horizontal Scroll */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               Healing Activity / Destination
@@ -75,14 +100,14 @@ const HomePage = () => {
               <ActivityIndicator size="large" color="#FF9A8A" />
             ) : places && places.length > 0 ? (
               <>
-                {places.map((place, index) => (
-                  <ImageCard
-                    key={index}
-                    imageUrl="https://baysport.com/blog/wp-content/uploads/2019/07/backlit-beach-dawn-dusk-588561-1.jpg"
-                    title={place.name}
-                    description={place.description}
-                  />
-                ))}
+                <FlatList
+                  data={places}
+                  renderItem={renderPlaceCard}
+                  keyExtractor={(item, index) => index.toString()}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalScrollContainer}
+                />
                 <Text style={styles.seeAll}>See All</Text>
               </>
             ) : (
@@ -90,18 +115,25 @@ const HomePage = () => {
             )}
           </View>
 
-          {/* Foods Section */}
+          {/* Foods Section - Horizontal Scroll */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Food Recommendations</Text>
-            {foods?.slice(0, 2).map((food, index) => (
-              <ImageCard
-                key={index}
-                imageUrl="https://www.gbhamericanhospital.com/wp-content/uploads/2022/08/360_F_269205000_FAvWjPBVLruUEoVzmm3nNdch9mSFdzLj.jpg"
-                title={food}
-              />
-            ))}
+            <FlatList
+              data={foods?.slice(0, 2)}
+              renderItem={renderFoodCard}
+              keyExtractor={(item, index) => index.toString()}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScrollContainer}
+            />
             <Text style={styles.seeAll}>See All</Text>
           </View>
+
+          <TodoList
+            todoList={todoList}
+            visible={todoListVisible}
+            onClose={() => setTodoListVisible(false)}
+          />
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -168,10 +200,12 @@ const styles = StyleSheet.create({
     color: "#FF9A8A",
     marginTop: 8,
   },
-  description: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    marginTop: 4,
+  horizontalScrollContainer: {
+    paddingHorizontal: 8,
+  },
+  horizontalCard: {
+    marginRight: 12,
+    width: 250,
   },
 });
 
