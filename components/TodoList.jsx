@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert, Platform } from 'react-native';
 import { gql, useMutation, useQuery } from '@apollo/client';
 import * as Calendar from 'expo-calendar';
 
@@ -33,7 +33,12 @@ const TodoList = ({ todoList, visible, onClose }) => {
       
       // Request Calendar permissions
       const calendarStatus = await Calendar.requestCalendarPermissionsAsync();
-      const reminderStatus = await Calendar.requestRemindersPermissionsAsync();
+      
+      // Only request reminder permissions on iOS
+      let reminderStatus = { status: 'granted' };
+      if (Platform.OS === 'ios') {
+        reminderStatus = await Calendar.requestRemindersPermissionsAsync();
+      }
       
       if (calendarStatus.status === 'granted' && reminderStatus.status === 'granted') {
         const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
@@ -48,7 +53,7 @@ const TodoList = ({ todoList, visible, onClose }) => {
           });
         }
       } else {
-        Alert.alert('Permissions Required', 'Calendar and reminder permissions are needed to add events.');
+        Alert.alert('Permissions Required', 'Calendar permissions are needed to add events.');
       }
     } catch (error) {
       console.error('Error saving todo:', error);
