@@ -46,7 +46,9 @@ export default function Login() {
       );
       await SecureStore.setItemAsync("user_id", result.data.login.userId);
       setIsSignedIn(true);
-      navigation.replace("Questions");
+      setTimeout(() => {
+        navigation.replace("Questions");
+      }, 100);
     } catch (error) {
       console.log(error);
       Alert.alert("Login Error", error.message);

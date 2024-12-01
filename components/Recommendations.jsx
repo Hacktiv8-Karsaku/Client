@@ -11,6 +11,7 @@ import {
 import { useQuery } from "@apollo/client";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
 import MapDisplay from "./MapView";
+import VideoRecommendations from "./VideoRecommendations";
 
 const PlaceCard = ({ place }) => (
   <TouchableOpacity style={styles.placeCard}>
@@ -31,7 +32,7 @@ const Recommendations = () => {
   if (loading) return <ActivityIndicator size="large" color="#FF9A8A" />;
   if (error) return <Text>Error loading recommendations</Text>;
 
-  const { todoList, places, foods } =
+  const { todoList, places, foodVideos } =
     data?.getUserProfile?.recommendations || {};
 
   return (
@@ -58,13 +59,11 @@ const Recommendations = () => {
         ))}
       </View>
 
-      {/* Foods Section */}
+      {/* Food Video Recommendations */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Food Recommendations</Text>
-        {foods?.map((food, index) => (
-          <TouchableOpacity key={index} style={styles.foodCard}>
-            <Text style={styles.foodText}>{food}</Text>
-          </TouchableOpacity>
+        <Text style={styles.sectionTitle}>Food Video Recommendations</Text>
+        {foodVideos?.map((video, index) => (
+          <VideoRecommendations key={index} videos={[video]} />
         ))}
       </View>
     </ScrollView>
