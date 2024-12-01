@@ -14,10 +14,11 @@ import ImageCard from "../components/ImageCard";
 import MapDisplay from "../components/MapView";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
 import TodoList from "../components/TodoList";
+import VideoRecommendations from "../components/VideoRecommendations";
 
 const HomePage = () => {
   const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
-  const { todoList, places, foods } =
+  const { todoList, places, foodVideos } =
     data?.getUserProfile?.recommendations || {};
   const [todoListVisible, setTodoListVisible] = useState(false);
 
@@ -26,14 +27,6 @@ const HomePage = () => {
       imageUrl="https://baysport.com/blog/wp-content/uploads/2019/07/backlit-beach-dawn-dusk-588561-1.jpg"
       title={item.name}
       description={item.description}
-      style={styles.horizontalCard}
-    />
-  );
-
-  const renderFoodCard = ({ item }) => (
-    <ImageCard
-      imageUrl="https://www.gbhamericanhospital.com/wp-content/uploads/2022/08/360_F_269205000_FAvWjPBVLruUEoVzmm3nNdch9mSFdzLj.jpg"
-      title={item}
       style={styles.horizontalCard}
     />
   );
@@ -103,18 +96,14 @@ const HomePage = () => {
             )}
           </View>
 
-          {/* Foods Section - Horizontal Scroll */}
+          {/* Food Video Recommendations Section - Horizontal Scroll */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Food Recommendations</Text>
-            <FlatList
-              data={foods?.slice(0, 2)}
-              renderItem={renderFoodCard}
-              keyExtractor={(item, index) => index.toString()}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalScrollContainer}
-            />
-            <Text style={styles.seeAll}>See All</Text>
+            <Text style={styles.sectionTitle}>Food Video Recommendations</Text>
+            {loading ? (
+              <ActivityIndicator size="large" color="#FF9A8A" />
+            ) : (
+              <VideoRecommendations videos={foodVideos} />
+            )}
           </View>
 
           <TodoList

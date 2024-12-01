@@ -24,7 +24,12 @@ export const GET_RECOMMENDATIONS = gql`
           name
           description
         }
-        foods
+        foodVideos {
+          title
+          url
+          thumbnail
+          description
+        }
       }
     }
   }
@@ -33,6 +38,7 @@ export const GET_RECOMMENDATIONS = gql`
 export const GET_USER_PROFILE = gql`
   query GetUserProfile {
     getUserProfile {
+      _id
       name
       username
       email
