@@ -253,6 +253,7 @@ const styles = StyleSheet.create({
   },
   placeToGoContainer: {
     marginHorizontal: 16,
+    marginBottom: 22
   },
   placeToGoTitle: {
     fontSize: 16,
