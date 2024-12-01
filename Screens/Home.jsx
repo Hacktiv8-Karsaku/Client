@@ -13,7 +13,7 @@ import { useQuery } from "@apollo/client";
 import ImageCard from "../components/imageCard";
 import MapDisplay from "../components/MapView";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
-import TodoList from '../components/TodoList';
+import TodoList from "../components/TodoList";
 
 const HomePage = () => {
   const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
@@ -59,18 +59,6 @@ const HomePage = () => {
             )}
           </View>
 
-          <View style={styles.navBar}>
-            <TouchableOpacity style={styles.navButton}>
-              <Text style={styles.navText}>To Do List</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navButton}>
-              <Text style={styles.navText}>Mood Tracker</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navButton}>
-              <Text style={styles.navText}>Calories Tracker</Text>
-            </TouchableOpacity>
-          </View>
-
           {/* Todo List Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Preview To Do List</Text>
@@ -83,7 +71,7 @@ const HomePage = () => {
                 </TouchableOpacity>
               ))
             )}
-            <Text 
+            <Text
               style={styles.seeAll}
               onPress={() => setTodoListVisible(true)}
             >
@@ -163,20 +151,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF9A8A",
     borderRadius: 20,
   },
-  navBar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 16,
-  },
-  navButton: {
-    padding: 8,
-    backgroundColor: "#FF9A8A",
-    borderRadius: 8,
-  },
-  navText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-  },
   section: {
     marginBottom: 24,
   },
@@ -199,6 +173,13 @@ const styles = StyleSheet.create({
     textAlign: "right",
     color: "#FF9A8A",
     marginTop: 8,
+  },
+  horizontalScrollContainer: {
+    paddingHorizontal: 8,
+  },
+  horizontalCard: {
+    marginRight: 12,
+    width: 250,
   },
   horizontalScrollContainer: {
     paddingHorizontal: 8,

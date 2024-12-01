@@ -1,9 +1,11 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 
-const ImageCard = ({ imageUrl, title }) => {
+const { width } = Dimensions.get('window');
+
+const ImageCard = ({ imageUrl, title, style }) => {
   return (
-    <TouchableOpacity style={styles.card}>
+    <TouchableOpacity style={[styles.card, style]}>
       <Image
         source={{ uri: imageUrl }}
         style={styles.image}
@@ -19,8 +21,9 @@ const ImageCard = ({ imageUrl, title }) => {
 const styles = StyleSheet.create({
   card: {
     height: 150,
+    width: 250,
     borderRadius: 8,
-    marginBottom: 8,
+    marginRight: 10, 
     overflow: 'hidden',
   },
   image: {
@@ -42,4 +45,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ImageCard; 
+export default ImageCard;
