@@ -43,6 +43,13 @@
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true
         }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow $(PRODUCT_NAME) to access your calendar",
+          "remindersPermission": "Allow $(PRODUCT_NAME) to access your reminders"
+        }
       ]
     ]
   }

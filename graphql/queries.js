@@ -1,7 +1,22 @@
 import { gql } from '@apollo/client';
 
+export const GET_SAVED_TODOS = gql`
+  query GetSavedTodos {
+    getSavedTodos
+  }
+`;
+
+export const DELETE_TODO = gql`
+  mutation DeleteTodoItem($todoItem: String!) {
+    deleteTodoItem(todoItem: $todoItem) {
+      _id
+      savedTodos
+    }
+  }
+`;
+
 export const GET_RECOMMENDATIONS = gql`
-  query GetUserRecommendations {
+  query GetRecommendations {
     getUserProfile {
       recommendations {
         todoList
@@ -11,6 +26,16 @@ export const GET_RECOMMENDATIONS = gql`
         }
         foods
       }
+    }
+  }
+`;
+
+export const GET_USER_PROFILE = gql`
+  query GetUserProfile {
+    getUserProfile {
+      name
+      username
+      email
     }
   }
 `; 
