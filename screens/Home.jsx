@@ -33,6 +33,8 @@ const HomePage = () => {
     />
   );
 
+  console.log("Places data:", places);
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={{ flex: 1 }}>
@@ -59,7 +61,15 @@ const HomePage = () => {
 
           {/* Todo List Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Preview To Do List</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Preview To Do List</Text>
+              <TouchableOpacity 
+                onPress={() => navigation.navigate("Questions")}
+                style={styles.retakeButton}
+              >
+                <Text style={styles.retakeButtonText}>Retake Questions</Text>
+              </TouchableOpacity>
+            </View>
             {loading ? (
               <ActivityIndicator size="large" color="#FF9A8A" />
             ) : (
@@ -212,7 +222,23 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 150,
   },
-
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  retakeButton: {
+    backgroundColor: '#FF9A8A',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  retakeButtonText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
 });
 
 export default HomePage;

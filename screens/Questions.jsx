@@ -12,6 +12,7 @@ import { useNavigation } from "@react-navigation/native";
 import StressLv from "../components/StressLv";
 import { AuthContext } from "../context/AuthContext";
 import * as SecureStore from "expo-secure-store";
+import { GET_RECOMMENDATIONS } from "../graphql/queries";
 
 const UPDATE_USER_PREFERENCES = gql`
   mutation UpdateUserPreferences(
@@ -49,7 +50,7 @@ export default function Questions() {
 
   const handleSubmit = async () => {
     try {
-      await updatePreferences({
+      const { data } = await updatePreferences({
         variables: {
           job,
           dailyActivities: activities.split(",").map((item) => item.trim()),
@@ -57,7 +58,9 @@ export default function Questions() {
           preferredFoods: preferredFoods.split(",").map((item) => item.trim()),
           avoidedFoods: avoidedFoods.split(",").map((item) => item.trim()),
         },
+        refetchQueries: [{ query: GET_RECOMMENDATIONS }],
       });
+
       await SecureStore.setItemAsync("questions_completed", "true");
       setShouldAskQuestions(false);
       navigation.replace("Home");
