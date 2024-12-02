@@ -55,14 +55,23 @@ const TodoList = ({ todoList, visible, onClose }) => {
       // Request Calendar permissions
       const calendarStatus = await Calendar.requestCalendarPermissionsAsync();
       if (calendarStatus.status === 'granted') {
-
-        const event = await Calendar.createEventAsync(Calendar.DEFAULT, {
-          title: todo,
-          startDate: new Date(),
-          endDate: new Date(new Date().getTime() + 30 * 60 * 1000),
-          timeZone: 'GMT',
-        });
-        console.log(`Event created with ID: ${event}`);
+        // Get all calendars
+        const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+        
+        // Find the first calendar that allows modifications
+        const defaultCalendar = calendars.find(cal => cal.allowsModifications);
+        
+        if (defaultCalendar) {
+          const event = await Calendar.createEventAsync(defaultCalendar.id, {
+            title: todo,
+            startDate: new Date(),
+            endDate: new Date(new Date().getTime() + 30 * 60 * 1000),
+            timeZone: 'GMT',
+          });
+          console.log(`Event created with ID: ${event}`);
+        } else {
+          console.log('No writable calendar found');
+        }
       }
     } catch (error) {
       Alert.alert('Error saving todo', error.message);
