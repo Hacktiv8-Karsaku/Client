@@ -44,4 +44,16 @@ export const GET_USER_PROFILE = gql`
       email
     }
   }
+`; 
+
+export const GET_DESTINATIONS = gql`
+  query GetDestinations {
+    getDestinations {
+      id
+      name
+      imageUrl
+      rating
+      description
+    }
+  }
 `;

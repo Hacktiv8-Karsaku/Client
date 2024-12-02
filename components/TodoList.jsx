@@ -1,7 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  Alert,
+} from 'react-native';
 import { gql, useMutation, useQuery } from '@apollo/client';
 import * as Calendar from 'expo-calendar';
+import * as Animatable from 'react-native-animatable';
 
 const GET_SAVED_TODOS = gql`
   query GetSavedTodos {
@@ -28,64 +36,59 @@ const TodoList = ({ todoList, visible, onClose }) => {
     try {
       const { data } = await saveTodo({
         variables: { todoItem: todo },
-        refetchQueries: [{ query: GET_SAVED_TODOS }]
+        refetchQueries: [{ query: GET_SAVED_TODOS }],
       });
-      
+
       // Request Calendar permissions
       const calendarStatus = await Calendar.requestCalendarPermissionsAsync();
-      
-      // Only request reminder permissions on iOS
-      let reminderStatus = { status: 'granted' };
-      if (Platform.OS === 'ios') {
-        reminderStatus = await Calendar.requestRemindersPermissionsAsync();
-      }
-      
-      if (calendarStatus.status === 'granted' && reminderStatus.status === 'granted') {
-        const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-        const defaultCalendar = calendars.find(cal => cal.isPrimary) || calendars[0];
-        
-        if (defaultCalendar) {
-          await Calendar.createEventAsync(defaultCalendar.id, {
-            title: todo,
-            startDate: new Date(),
-            endDate: new Date(Date.now() + 2 * 60 * 60 * 1000),
-            alarms: [{ relativeOffset: -60 }]
-          });
-        }
-      } else {
-        Alert.alert('Permissions Required', 'Calendar permissions are needed to add events.');
+      if (calendarStatus.status === 'granted') {
+
+        const event = await Calendar.createEventAsync(Calendar.DEFAULT, {
+          title: todo,
+          startDate: new Date(),
+          endDate: new Date(new Date().getTime() + 30 * 60 * 1000),
+          timeZone: 'GMT',
+        });
+        console.log(`Event created with ID: ${event}`);
       }
     } catch (error) {
-      console.error('Error saving todo:', error);
-      Alert.alert('Error', 'Failed to save todo item');
+      Alert.alert('Error saving todo', error.message);
     }
   };
 
+  const renderTodoItem = (todo, index) => {
+    const isSaved = savedTodos.includes(todo);
+
+    return (
+      <Animatable.View
+        animation="fadeInUp"
+        delay={index * 100}
+        style={styles.card}
+        key={index}
+      >
+        <Text style={styles.todoText}>{todo}</Text>
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            { backgroundColor: isSaved ? '#BDE0FE' : '#FF9A8A' },
+          ]}
+          onPress={() => handleSaveTodo(todo)}
+        >
+          <Text style={styles.saveButtonText}>
+            {isSaved ? 'Saved' : 'Save'}
+          </Text>
+        </TouchableOpacity>
+      </Animatable.View>
+    );
+  };
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
-        <Text style={styles.title}>All Todo Items</Text>
-        {todoList?.map((todo, index) => (
-          <View key={index} style={styles.todoItem}>
-            <Text style={styles.todoText}>{todo}</Text>
-            <TouchableOpacity 
-              style={[
-                styles.saveButton,
-                savedTodos.includes(todo) && styles.savedButton
-              ]}
-              onPress={() => handleSaveTodo(todo)}
-              disabled={savedTodos.includes(todo)}
-            >
-              <Text style={styles.buttonText}>
-                {savedTodos.includes(todo) ? 'Saved' : 'Save'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ))}
+        <Text style={styles.title}>Your To-Do List</Text>
+        <View style={styles.listContainer}>
+          {todoList?.map((todo, index) => renderTodoItem(todo, index))}
+        </View>
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
           <Text style={styles.closeButtonText}>Close</Text>
         </TouchableOpacity>
@@ -97,51 +100,57 @@ const TodoList = ({ todoList, visible, onClose }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFF',
+    padding: 16,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#333',
   },
-  todoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginBottom: 10,
+  listContainer: {
+    flex: 1,
+    marginTop: 8,
+  },
+  card: {
+    backgroundColor: '#FFF9F5',
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
   },
   todoText: {
-    flex: 1,
     fontSize: 16,
+    color: '#333',
+    marginBottom: 8,
   },
   saveButton: {
-    backgroundColor: '#FF9A8A',
-    padding: 8,
-    borderRadius: 5,
-    marginLeft: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
   },
-  savedButton: {
-    backgroundColor: '#90EE90',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
+  saveButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
   },
   closeButton: {
-    backgroundColor: '#333',
-    padding: 15,
+    backgroundColor: '#FF9A8A',
+    padding: 12,
     borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
+    marginTop: 16,
   },
   closeButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#FFF',
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
 
-export default TodoList; 
+export default TodoList;
