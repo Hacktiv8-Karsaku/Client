@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client';
+import { gql } from "@apollo/client";
 
 export const GET_SAVED_TODOS = gql`
   query GetSavedTodos {
@@ -44,4 +44,4 @@ export const GET_USER_PROFILE = gql`
       email
     }
   }
-`; 
+`;
