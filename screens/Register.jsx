@@ -17,18 +17,21 @@ const REGISTER = gql`
     $username: String
     $email: String
     $password: String
+    $location: String
   ) {
     createUser(
       name: $name
       username: $username
       email: $email
       password: $password
+      location: $location
     ) {
       _id
       name
       username
       email
       password
+      location
     }
   }
 `;
@@ -39,6 +42,7 @@ export default function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [location, setLocation] = useState("");
   const navigation = useNavigation();
 
   const handleRegister = async () => {
@@ -49,6 +53,7 @@ export default function Register() {
           username: username,
           email: email,
           password: password,
+          location: location
         },
       });
       navigation.navigate("Login");
@@ -73,6 +78,12 @@ export default function Register() {
         onChangeText={setUsername}
         value={username}
         placeholder="Username"
+        style={styles.input}
+      />
+      <TextInput
+        onChangeText={setLocation}
+        value={location}
+        placeholder="Location"
         style={styles.input}
       />
       <TextInput

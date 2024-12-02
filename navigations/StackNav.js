@@ -42,7 +42,6 @@ export default function RootStack() {
                 component={Profile}
                 options={{ title: "Profile" }}
               />
-              {/* Tambahkan rute Destination */}
               <Stack.Screen
                 name="Destination"
                 component={Destination}
