@@ -57,3 +57,13 @@ export const GET_DESTINATIONS = gql`
     }
   }
 `;
+
+export const REGENERATE_TODOS = gql`
+  mutation RegenerateTodos {
+    regenerateTodos {
+      recommendations {
+        todoList
+      }
+    }
+  }
+`;
