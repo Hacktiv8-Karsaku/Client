@@ -11,7 +11,7 @@ import { AuthContext } from "../context/AuthContext";
 const Stack = createNativeStackNavigator();
 
 export default function RootStack() {
-  const { isSignedIn } = useContext(AuthContext);
+  const { isSignedIn, shouldAskQuestions } = useContext(AuthContext);
 
   return (
     <NavigationContainer>
@@ -27,26 +27,32 @@ export default function RootStack() {
         }}
       >
         {isSignedIn ? (
-          <>
+          shouldAskQuestions ? (
             <Stack.Screen
               name="Questions"
               component={Questions}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Home"
-              component={BottomTab}
-              options={{
-                title: "Karsaku",
+              options={{ 
                 headerShown: false,
+                gestureEnabled: false 
               }}
             />
-            <Stack.Screen
-              name="Profile"
-              component={Profile}
-              options={{ title: "Profile" }}
-            />
-          </>
+          ) : (
+            <>
+              <Stack.Screen
+                name="Home"
+                component={BottomTab}
+                options={{
+                  title: "Karsaku",
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="Profile"
+                component={Profile}
+                options={{ title: "Profile" }}
+              />
+            </>
+          )
         ) : (
           <>
             <Stack.Screen
