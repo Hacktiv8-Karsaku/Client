@@ -5,6 +5,7 @@ import Register from "../screens/Register";
 import Questions from "../screens/Questions";
 import BottomTab from "./BottomTab";
 import Profile from "../screens/Profile";
+import Destination from "../screens/Destination";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 
@@ -15,25 +16,15 @@ export default function RootStack() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: "white",
-          },
-          headerTintColor: "#4267B2",
-          headerTitleStyle: {
-            fontWeight: "bold",
-          },
-        }}
-      >
+      <Stack.Navigator>
         {isSignedIn ? (
           shouldAskQuestions ? (
             <Stack.Screen
               name="Questions"
               component={Questions}
-              options={{ 
+              options={{
                 headerShown: false,
-                gestureEnabled: false 
+                gestureEnabled: false
               }}
             />
           ) : (
@@ -50,6 +41,12 @@ export default function RootStack() {
                 name="Profile"
                 component={Profile}
                 options={{ title: "Profile" }}
+              />
+              {/* Tambahkan rute Destination */}
+              <Stack.Screen
+                name="Destination"
+                component={Destination}
+                options={{ title: "Recommended Destinations" }}
               />
             </>
           )

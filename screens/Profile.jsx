@@ -9,7 +9,7 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { Feather, Fontisto } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
@@ -157,7 +157,7 @@ const ProfilePage = () => {
               </Text>
             </View>
             <View style={styles.pointsItem}>
-              <Fontisto name="world-o" size={24} color="#FF9A8A" />
+              <Feather name="smile" size={24} color="#FF9A8A" />
               <Text style={styles.pointsText}>HTML/CSS</Text>
             </View>
             <View style={styles.pointsItem}>
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   pointsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginVertical: 24,
+    marginVertical: 16,
     backgroundColor: "#FFF5F3",
   },
   pointsItem: {
@@ -253,6 +253,7 @@ const styles = StyleSheet.create({
   },
   placeToGoContainer: {
     marginHorizontal: 16,
+    marginBottom: 40
   },
   placeToGoTitle: {
     fontSize: 16,

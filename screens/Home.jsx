@@ -9,14 +9,17 @@ import {
   FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@apollo/client";
 import ImageCard from "../components/ImageCard";
 import MapDisplay from "../components/MapView";
+import Destination from "../screens/Destination";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
 import TodoList from "../components/TodoList";
 import VideoRecommendations from "../components/VideoRecommendations";
 
 const HomePage = () => {
+  const navigation = useNavigation(); // Gunakan hook ini
   const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
   const { todoList, places, foodVideos } =
     data?.getUserProfile?.recommendations || {};
@@ -89,7 +92,12 @@ const HomePage = () => {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.horizontalScrollContainer}
                 />
-                <Text style={styles.seeAll}>See All</Text>
+                <Text
+                  style={styles.seeAll}
+                  onPress={() => navigation.navigate("Destination")}
+                >
+                  See All
+                </Text>
               </>
             ) : (
               <Text>No places available</Text>
@@ -162,13 +170,6 @@ const styles = StyleSheet.create({
     textAlign: "right",
     color: "#FF9A8A",
     marginTop: 8,
-  },
-  horizontalScrollContainer: {
-    paddingHorizontal: 8,
-  },
-  horizontalCard: {
-    marginRight: 12,
-    width: 250,
   },
   horizontalScrollContainer: {
     paddingHorizontal: 8,
