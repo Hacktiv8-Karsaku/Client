@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   Text,
   TextInput,
@@ -10,6 +10,7 @@ import {
 import { gql, useMutation } from "@apollo/client";
 import { useNavigation } from "@react-navigation/native";
 import StressLv from "../components/StressLv";
+import { AuthContext } from "../context/AuthContext";
 
 const UPDATE_USER_PREFERENCES = gql`
   mutation UpdateUserPreferences(
@@ -29,11 +30,13 @@ const UPDATE_USER_PREFERENCES = gql`
       _id
       job
       stressLevel
+      lastQuestionDate
     }
   }
 `;
 
 export default function Questions() {
+  const { setShouldAskQuestions } = useContext(AuthContext);
   const navigation = useNavigation();
   const [job, setJob] = useState("");
   const [activities, setActivities] = useState("");
@@ -54,6 +57,7 @@ export default function Questions() {
           avoidedFoods: avoidedFoods.split(",").map((item) => item.trim()),
         },
       });
+      setShouldAskQuestions(false);
       navigation.replace("Home");
     } catch (error) {
       Alert.alert("Error", error.message);

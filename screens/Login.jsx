@@ -21,6 +21,7 @@ const LOGIN = gql`
       access_token
       userId
       username
+      shouldAskQuestions
     }
   }
 `;
@@ -29,7 +30,7 @@ export default function Login() {
   const [login, { loading }] = useMutation(LOGIN);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const { setIsSignedIn } = useContext(AuthContext);
+  const { setIsSignedIn, setShouldAskQuestions } = useContext(AuthContext);
   const navigation = useNavigation();
 
   const handleLogin = async () => {
@@ -40,15 +41,18 @@ export default function Login() {
           password: password,
         },
       });
-      await SecureStore.setItemAsync(
-        "access_token",
-        result.data.login.access_token
-      );
+      
+      await SecureStore.setItemAsync("access_token", result.data.login.access_token);
       await SecureStore.setItemAsync("user_id", result.data.login.userId);
+      
+      setShouldAskQuestions(result.data.login.shouldAskQuestions);
       setIsSignedIn(true);
-      setTimeout(() => {
+      
+      if (result.data.login.shouldAskQuestions) {
         navigation.replace("Questions");
-      }, 100);
+      } else {
+        navigation.replace("Home");
+      }
     } catch (error) {
       console.log(error);
       Alert.alert("Login Error", error.message);

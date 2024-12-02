@@ -9,6 +9,7 @@ import { ActivityIndicator, View } from "react-native";
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [shouldAskQuestions, setShouldAskQuestions] = useState(true);
 
   useEffect(() => {
     async function checkToken() {
@@ -31,7 +32,14 @@ export default function App() {
 
   return (
     <ApolloProvider client={client}>
-      <AuthContext.Provider value={{ isSignedIn, setIsSignedIn }}>
+      <AuthContext.Provider 
+        value={{ 
+          isSignedIn, 
+          setIsSignedIn, 
+          shouldAskQuestions, 
+          setShouldAskQuestions 
+        }}
+      >
         <RootStack />
       </AuthContext.Provider>
     </ApolloProvider>
