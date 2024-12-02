@@ -23,6 +23,11 @@ export const GET_RECOMMENDATIONS = gql`
         places {
           name
           description
+          address
+          coordinates {
+            lat
+            lng
+          }
         }
         foodVideos {
           title
@@ -54,6 +59,16 @@ export const GET_DESTINATIONS = gql`
       imageUrl
       rating
       description
+    }
+  }
+`;
+
+export const REGENERATE_TODOS = gql`
+  mutation RegenerateTodos {
+    regenerateTodos {
+      recommendations {
+        todoList
+      }
     }
   }
 `;

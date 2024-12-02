@@ -6,14 +6,13 @@ import {
   ActivityIndicator,
   Text,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Callout } from "react-native-maps";
 import * as Location from "expo-location";
-import { GOOGLE_MAPS_API_KEY } from "@env";
 
 const MapDisplay = ({ places }) => {
+  console.log("Places received in MapDisplay:", places);
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [markers, setMarkers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,49 +26,19 @@ const MapDisplay = ({ places }) => {
 
         const currentLocation = await Location.getCurrentPositionAsync({});
         setLocation(currentLocation);
-
-        // Convert place names to coordinates using Google Geocoding API
-        if (places && places.length > 0) {
-          const markersData = await Promise.all(
-            places.map(async (place) => {
-              const response = await fetch(
-                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-                  place.name
-                )}&key=${GOOGLE_MAPS_API_KEY}`
-              );
-              const data = await response.json();
-
-              if (data.results && data.results[0]) {
-                const { lat, lng } = data.results[0].geometry.location;
-                return {
-                  coordinate: {
-                    latitude: lat,
-                    longitude: lng,
-                  },
-                  title: place.name,
-                  description: place.description,
-                };
-              }
-              return null;
-            })
-          );
-
-          setMarkers(markersData.filter((marker) => marker !== null));
-        }
-
         setLoading(false);
       } catch (error) {
         setErrorMsg("Error getting location");
         console.error(error);
       }
     })();
-  }, [places]);
+  }, []);
 
   if (errorMsg) {
     return <Text style={{ textAlign: "center" }}>{errorMsg}</Text>;
   }
 
-  if (!location) {
+  if (loading || !location) {
     return <ActivityIndicator size="large" color="#FF9A8A" />;
   }
 
@@ -84,13 +53,40 @@ const MapDisplay = ({ places }) => {
           longitudeDelta: 0.0421,
         }}
       >
-        {markers.map((marker, index) => (
+        {/* Current Location Marker */}
+        <Marker
+          coordinate={{
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          }}
+          pinColor="#FF9A8A"
+        >
+          <Callout>
+            <Text>Your Location</Text>
+          </Callout>
+        </Marker>
+
+        {/* Place Markers */}
+        {places?.map((place, index) => (
           <Marker
             key={index}
-            coordinate={marker.coordinate}
-            title={marker.title}
-            description={marker.description}
-          />
+            coordinate={{
+              latitude: Number(place.coordinates?.lat) || 0,
+              longitude: Number(place.coordinates?.lng) || 0,
+            }}
+            title={place.name}
+            description={place.description}
+          >
+            <Callout>
+              <View style={styles.calloutContainer}>
+                <Text style={styles.calloutTitle}>{place.name}</Text>
+                <Text style={styles.calloutDescription}>
+                  {place.description}
+                </Text>
+                <Text style={styles.calloutAddress}>{place.address}</Text>
+              </View>
+            </Callout>
+          </Marker>
         ))}
       </MapView>
     </View>
@@ -107,6 +103,23 @@ const styles = StyleSheet.create({
   map: {
     width: Dimensions.get("window").width,
     height: 500,
+  },
+  calloutContainer: {
+    width: 200,
+    padding: 10,
+  },
+  calloutTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  calloutDescription: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  calloutAddress: {
+    fontSize: 12,
+    color: "#666",
   },
 });
 
