@@ -10,7 +10,6 @@ import MapView, { Marker, Callout } from "react-native-maps";
 import * as Location from "expo-location";
 
 const MapDisplay = ({ places }) => {
-  console.log("Places received in MapDisplay:", places);
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +51,9 @@ const MapDisplay = ({ places }) => {
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}
+        onRegionChange={(region) => {
+          console.log('Current region:', region);
+        }}
       >
         {/* Current Location Marker */}
         <Marker
@@ -60,34 +62,28 @@ const MapDisplay = ({ places }) => {
             longitude: location.coords.longitude,
           }}
           pinColor="#FF9A8A"
-        >
-          <Callout>
-            <Text>Your Location</Text>
-          </Callout>
-        </Marker>
+          title="Your Location"
+        />
 
         {/* Place Markers */}
-        {places?.map((place, index) => (
-          <Marker
-            key={index}
-            coordinate={{
-              latitude: Number(place.coordinates?.lat) || 0,
-              longitude: Number(place.coordinates?.lng) || 0,
-            }}
-            title={place.name}
-            description={place.description}
-          >
-            <Callout>
-              <View style={styles.calloutContainer}>
-                <Text style={styles.calloutTitle}>{place.name}</Text>
-                <Text style={styles.calloutDescription}>
-                  {place.description}
-                </Text>
-                <Text style={styles.calloutAddress}>{place.address}</Text>
-              </View>
-            </Callout>
-          </Marker>
-        ))}
+        {places?.map((place, index) => {
+          try {
+            return (
+              <Marker
+                key={index}
+                coordinate={{
+                  latitude: place.coordinates.lat,
+                  longitude: place.coordinates.lng,
+                }}
+                pinColor="blue"
+                title={place.name}
+              />
+            );
+          } catch (error) {
+            console.error('Error rendering marker:', error, place);
+            return null;
+          }
+        })}
       </MapView>
     </View>
   );
@@ -99,6 +95,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+    height: 500,
   },
   map: {
     width: Dimensions.get("window").width,
@@ -114,7 +111,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   calloutDescription: {
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 5,
   },
   calloutAddress: {

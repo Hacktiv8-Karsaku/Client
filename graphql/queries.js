@@ -47,9 +47,10 @@ export const GET_USER_PROFILE = gql`
       name
       username
       email
+      job
     }
   }
-`; 
+`;
 
 export const GET_DESTINATIONS = gql`
   query GetDestinations {

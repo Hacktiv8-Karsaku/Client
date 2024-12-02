@@ -19,21 +19,24 @@ export default function RootStack() {
       <Stack.Navigator>
         {isSignedIn ? (
           <>
-            <Stack.Screen
-              name="Home"
-              component={BottomTab}
-              options={{
-                title: "Karsaku",
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="Questions"
-              component={Questions}
-              options={{
-                headerShown: false,
-              }}
-            />
+            {shouldAskQuestions ? (
+              <Stack.Screen
+                name="Questions"
+                component={Questions}
+                options={{
+                  headerShown: false,
+                }}
+              />
+            ) : (
+              <Stack.Screen
+                name="Home"
+                component={BottomTab}
+                options={{
+                  title: "Karsaku",
+                  headerShown: false,
+                }}
+              />
+            )}
             <Stack.Screen
               name="Profile"
               component={Profile}

@@ -19,10 +19,15 @@ export default function App() {
         
         if (token) {
           setIsSignedIn(true);
-          setShouldAskQuestions(questionStatus !== 'true');
+          setShouldAskQuestions(questionStatus !== "true");
+        } else {
+          setIsSignedIn(false);
+          setShouldAskQuestions(true);
         }
       } catch (error) {
         console.error("Error checking auth state:", error);
+        setIsSignedIn(false);
+        setShouldAskQuestions(true);
       } finally {
         setLoading(false);
       }
