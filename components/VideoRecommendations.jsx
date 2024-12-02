@@ -36,6 +36,7 @@ const styles = StyleSheet.create({
   videoCard: {
     width: 280,
     marginRight: 15,
+    marginBottom: 40,
     backgroundColor: '#fff',
     borderRadius: 10,
     overflow: 'hidden',

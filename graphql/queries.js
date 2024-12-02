@@ -45,3 +45,15 @@ export const GET_USER_PROFILE = gql`
     }
   }
 `; 
+
+export const GET_DESTINATIONS = gql`
+  query GetDestinations {
+    getDestinations {
+      id
+      name
+      imageUrl
+      rating
+      description
+    }
+  }
+`;
