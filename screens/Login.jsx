@@ -45,20 +45,14 @@ export default function Login() {
       await SecureStore.setItemAsync("access_token", result.data.login.access_token);
       await SecureStore.setItemAsync("user_id", result.data.login.userId);
       
-      if (result.data.login.shouldAskQuestions) {
-        await SecureStore.setItemAsync("questions_completed", "false");
-      } else {
-        await SecureStore.setItemAsync("questions_completed", "true");
-      }
+      await SecureStore.setItemAsync(
+        "questions_completed", 
+        result.data.login.shouldAskQuestions ? "false" : "true"
+      );
       
       setShouldAskQuestions(result.data.login.shouldAskQuestions);
-      setIsSignedIn(true);
       
-      if (result.data.login.shouldAskQuestions) {
-        navigation.replace("Questions");
-      } else {
-        navigation.replace("Home");
-      }
+      setIsSignedIn(true);
     } catch (error) {
       console.log(error);
       Alert.alert("Login Error", error.message);

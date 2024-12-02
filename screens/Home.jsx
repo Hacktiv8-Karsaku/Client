@@ -26,6 +26,9 @@ const HomePage = () => {
     data?.getUserProfile?.recommendations || {};
   const [todoListVisible, setTodoListVisible] = useState(false);
 
+  console.log("Places data in MapView:", places);
+  console.log("First place coordinates:", places?.[0]?.coordinates);
+
   const renderPlaceCard = ({ item }) => (
     <DetailDestination
       place={item}
