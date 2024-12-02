@@ -21,6 +21,7 @@ const UPDATE_USER_PREFERENCES = gql`
     $stressLevel: Int
     $preferredFoods: [String]
     $avoidedFoods: [String]
+    $domicile: String
   ) {
     updateUserPreferences(
       job: $job
@@ -28,6 +29,7 @@ const UPDATE_USER_PREFERENCES = gql`
       stressLevel: $stressLevel
       preferredFoods: $preferredFoods
       avoidedFoods: $avoidedFoods
+      domicile: $domicile
     ) {
       _id
       job
@@ -45,6 +47,7 @@ export default function Questions() {
   const [stressLevel, setStressLevel] = useState(5);
   const [preferredFoods, setPreferredFoods] = useState("");
   const [avoidedFoods, setAvoidedFoods] = useState("");
+  const [domicile, setDomicile] = useState("");
 
   const [updatePreferences] = useMutation(UPDATE_USER_PREFERENCES);
 
@@ -52,11 +55,11 @@ export default function Questions() {
     try {
       const { data } = await updatePreferences({
         variables: {
-         
           dailyActivities: activities.split(",").map((item) => item.trim()),
           stressLevel,
           preferredFoods: preferredFoods.split(",").map((item) => item.trim()),
           avoidedFoods: avoidedFoods.split(",").map((item) => item.trim()),
+          domicile: domicile.trim(),
         },
         refetchQueries: [{ query: GET_RECOMMENDATIONS }],
       });
@@ -100,6 +103,14 @@ export default function Questions() {
         value={avoidedFoods}
         onChangeText={setAvoidedFoods}
         placeholder="Separate foods with commas"
+      />
+
+      <Text style={styles.label}>Where do you live?</Text>
+      <TextInput
+        style={styles.input}
+        value={domicile}
+        onChangeText={setDomicile}
+        placeholder="Enter your city and country (e.g., Jakarta, Indonesia)"
       />
 
       <TouchableOpacity style={styles.button} onPress={handleSubmit}>
