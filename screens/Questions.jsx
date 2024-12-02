@@ -40,7 +40,7 @@ const UPDATE_USER_PREFERENCES = gql`
 export default function Questions() {
   const { setShouldAskQuestions } = useContext(AuthContext);
   const navigation = useNavigation();
-  const [job, setJob] = useState("");
+  
   const [activities, setActivities] = useState("");
   const [stressLevel, setStressLevel] = useState(5);
   const [preferredFoods, setPreferredFoods] = useState("");
@@ -52,7 +52,7 @@ export default function Questions() {
     try {
       const { data } = await updatePreferences({
         variables: {
-          job,
+         
           dailyActivities: activities.split(",").map((item) => item.trim()),
           stressLevel,
           preferredFoods: preferredFoods.split(",").map((item) => item.trim()),
@@ -73,14 +73,7 @@ export default function Questions() {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Help us personalize your experience</Text>
 
-      <Text style={styles.label}>What is your job?</Text>
-      <TextInput
-        style={styles.input}
-        value={job}
-        onChangeText={setJob}
-        placeholder="Enter your job"
-      />
-
+    
       <Text style={styles.label}>What activities did you do today?</Text>
       <TextInput
         style={styles.input}

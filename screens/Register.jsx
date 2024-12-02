@@ -17,6 +17,7 @@ const REGISTER = gql`
     $username: String
     $email: String
     $password: String
+    $job: String
     $location: String
   ) {
     createUser(
@@ -24,6 +25,7 @@ const REGISTER = gql`
       username: $username
       email: $email
       password: $password
+      job: $job
       location: $location
     ) {
       _id
@@ -31,28 +33,32 @@ const REGISTER = gql`
       username
       email
       password
+      job
       location
     }
   }
 `;
 
 export default function Register() {
-  const [register, { loading }] = useMutation(REGISTER);
+  const [register, { isLoading }] = useMutation(REGISTER);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState("");
   const navigation = useNavigation();
 
   const handleRegister = async () => {
     try {
+      setLoading(true);
       const result = await register({
         variables: {
           name: name,
           username: username,
           email: email,
           password: password,
+          job: job,
           location: location
         },
       });
@@ -61,6 +67,7 @@ export default function Register() {
       console.log(error);
       Alert.alert("Registration Error", error.message);
     } finally {
+      setLoading(false);
       Keyboard.dismiss();
     }
   };
@@ -99,6 +106,13 @@ export default function Register() {
         placeholder="Password"
         style={styles.input}
         secureTextEntry={true}
+      />
+      <TextInput
+        onChangeText={setJob}
+        value={job}
+        placeholder="Job"
+        style={styles.input}
+        keyboardType="Job"
       />
 
       {!loading ? (
