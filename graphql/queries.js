@@ -23,6 +23,11 @@ export const GET_RECOMMENDATIONS = gql`
         places {
           name
           description
+          address
+          coordinates {
+            lat
+            lng
+          }
         }
         foodVideos {
           title
