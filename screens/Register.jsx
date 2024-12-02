@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Keyboard,
 } from "react-native";
 import { gql, useMutation } from "@apollo/client";
 import { useState } from "react";
@@ -47,6 +48,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState("");
+  const [job, setJob] = useState("");
   const navigation = useNavigation();
 
   const handleRegister = async () => {
@@ -112,7 +114,6 @@ export default function Register() {
         value={job}
         placeholder="Job"
         style={styles.input}
-        keyboardType="Job"
       />
 
       {!loading ? (
