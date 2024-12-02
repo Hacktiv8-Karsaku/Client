@@ -45,6 +45,12 @@ export default function Login() {
       await SecureStore.setItemAsync("access_token", result.data.login.access_token);
       await SecureStore.setItemAsync("user_id", result.data.login.userId);
       
+      if (result.data.login.shouldAskQuestions) {
+        await SecureStore.setItemAsync("questions_completed", "false");
+      } else {
+        await SecureStore.setItemAsync("questions_completed", "true");
+      }
+      
       setShouldAskQuestions(result.data.login.shouldAskQuestions);
       setIsSignedIn(true);
       

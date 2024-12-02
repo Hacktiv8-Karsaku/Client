@@ -40,6 +40,7 @@ const ImageCard = ({ imageUrl, title }) => {
 const ProfilePage = () => {
   const { setIsSignedIn } = useContext(AuthContext);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [userId, setUserId] = useState("");
   const {
     loading: todosLoading,
     error: todosError,
@@ -50,7 +51,7 @@ const ProfilePage = () => {
     error: profileError,
     data: profileData,
   } = useQuery(GET_USER_PROFILE);
-  const [deleteTodo] = useMutation(DELETE_TODO);
+  const [deleteTodo] = useMutation(DELETE_TODO, { variables: { id: userId } });
 
   const placeToGoData = [
     {
@@ -132,7 +133,7 @@ const ProfilePage = () => {
           <View style={styles.profileContainer}>
             <Image
               source={{
-                uri: "https://i.pinimg.com/736x/87/06/ee/8706ee1d850898c03d1e0a845df81040.jpg",
+                uri: `https://avatar.iran.liara.run/public?username=${profileData?.getUserProfile?.username}`,
               }}
               style={styles.profileImage}
             />
@@ -172,6 +173,13 @@ const ProfilePage = () => {
               <Text>Loading...</Text>
             ) : todosError ? (
               <Text>Error loading saved todos</Text>
+            ) : todosData?.getSavedTodos?.length === 0 ? (
+              <View style={styles.emptyStateContainer}>
+                <Text style={styles.emptyStateText}>
+                  You haven't saved any todos yet. Save some todos to see them
+                  here!
+                </Text>
+              </View>
             ) : (
               todosData?.getSavedTodos?.map((todo, index) => (
                 <View key={index} style={styles.todoItem}>
@@ -320,6 +328,21 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 8,
+  },
+  emptyStateContainer: {
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF5F3",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FF9A8A",
+    marginTop: 10,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
   },
 });
 

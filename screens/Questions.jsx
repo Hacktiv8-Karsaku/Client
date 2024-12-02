@@ -11,6 +11,7 @@ import { gql, useMutation } from "@apollo/client";
 import { useNavigation } from "@react-navigation/native";
 import StressLv from "../components/StressLv";
 import { AuthContext } from "../context/AuthContext";
+import * as SecureStore from "expo-secure-store";
 
 const UPDATE_USER_PREFERENCES = gql`
   mutation UpdateUserPreferences(
@@ -57,6 +58,7 @@ export default function Questions() {
           avoidedFoods: avoidedFoods.split(",").map((item) => item.trim()),
         },
       });
+      await SecureStore.setItemAsync("questions_completed", "true");
       setShouldAskQuestions(false);
       navigation.replace("Home");
     } catch (error) {

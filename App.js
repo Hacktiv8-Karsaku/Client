@@ -13,11 +13,19 @@ export default function App() {
 
   useEffect(() => {
     async function checkToken() {
-      const token = await SecureStore.getItemAsync("access_token");
-      if (token) {
-        setIsSignedIn(true);
+      try {
+        const token = await SecureStore.getItemAsync("access_token");
+        const questionStatus = await SecureStore.getItemAsync("questions_completed");
+        
+        if (token) {
+          setIsSignedIn(true);
+          setShouldAskQuestions(questionStatus !== 'true');
+        }
+      } catch (error) {
+        console.error("Error checking auth state:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     checkToken();
   }, []);
