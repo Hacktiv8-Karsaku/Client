@@ -10,6 +10,7 @@ import MapView, { Marker, Callout } from "react-native-maps";
 import * as Location from "expo-location";
 
 const MapDisplay = ({ places }) => {
+  console.log("Places received in MapDisplay:", places);
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,8 +71,8 @@ const MapDisplay = ({ places }) => {
           <Marker
             key={index}
             coordinate={{
-              latitude: place.coordinates?.lat || 0,
-              longitude: place.coordinates?.lng || 0,
+              latitude: Number(place.coordinates?.lat) || 0,
+              longitude: Number(place.coordinates?.lng) || 0,
             }}
             title={place.name}
             description={place.description}
@@ -79,7 +80,9 @@ const MapDisplay = ({ places }) => {
             <Callout>
               <View style={styles.calloutContainer}>
                 <Text style={styles.calloutTitle}>{place.name}</Text>
-                <Text style={styles.calloutDescription}>{place.description}</Text>
+                <Text style={styles.calloutDescription}>
+                  {place.description}
+                </Text>
                 <Text style={styles.calloutAddress}>{place.address}</Text>
               </View>
             </Callout>
