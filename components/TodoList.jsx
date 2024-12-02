@@ -10,6 +10,7 @@ import {
 import { gql, useMutation, useQuery } from '@apollo/client';
 import * as Calendar from 'expo-calendar';
 import * as Animatable from 'react-native-animatable';
+import { GET_RECOMMENDATIONS, REGENERATE_TODOS } from '../graphql/queries';
 
 const GET_SAVED_TODOS = gql`
   query GetSavedTodos {
@@ -29,8 +30,20 @@ const SAVE_TODO = gql`
 const TodoList = ({ todoList, visible, onClose }) => {
   const { data: savedTodosData } = useQuery(GET_SAVED_TODOS);
   const [saveTodo] = useMutation(SAVE_TODO);
+  const [regenerateTodos, { loading: regenerating }] = useMutation(REGENERATE_TODOS);
 
   const savedTodos = savedTodosData?.getSavedTodos || [];
+
+  const handleRegenerateTodos = async () => {
+    try {
+      await regenerateTodos({
+        refetchQueries: [{ query: GET_RECOMMENDATIONS }],
+      });
+      Alert.alert('Success', 'Todo list has been regenerated!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to regenerate todo list');
+    }
+  };
 
   const handleSaveTodo = async (todo) => {
     try {
@@ -42,14 +55,23 @@ const TodoList = ({ todoList, visible, onClose }) => {
       // Request Calendar permissions
       const calendarStatus = await Calendar.requestCalendarPermissionsAsync();
       if (calendarStatus.status === 'granted') {
-
-        const event = await Calendar.createEventAsync(Calendar.DEFAULT, {
-          title: todo,
-          startDate: new Date(),
-          endDate: new Date(new Date().getTime() + 30 * 60 * 1000),
-          timeZone: 'GMT',
-        });
-        console.log(`Event created with ID: ${event}`);
+        // Get all calendars
+        const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+        
+        // Find the first calendar that allows modifications
+        const defaultCalendar = calendars.find(cal => cal.allowsModifications);
+        
+        if (defaultCalendar) {
+          const event = await Calendar.createEventAsync(defaultCalendar.id, {
+            title: todo,
+            startDate: new Date(),
+            endDate: new Date(new Date().getTime() + 30 * 60 * 1000),
+            timeZone: 'GMT',
+          });
+          console.log(`Event created with ID: ${event}`);
+        } else {
+          console.log('No writable calendar found');
+        }
       }
     } catch (error) {
       Alert.alert('Error saving todo', error.message);
@@ -89,9 +111,20 @@ const TodoList = ({ todoList, visible, onClose }) => {
         <View style={styles.listContainer}>
           {todoList?.map((todo, index) => renderTodoItem(todo, index))}
         </View>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeButtonText}>Close</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            style={styles.regenerateButton}
+            onPress={handleRegenerateTodos}
+            disabled={regenerating}
+          >
+            <Text style={styles.regenerateButtonText}>
+              {regenerating ? 'Regenerating...' : 'Regenerate'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Modal>
   );
@@ -140,16 +173,38 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
   },
+  buttonContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  regenerateButton: {
+    backgroundColor: '#BDE0FE',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 12,
+    width: '80%',
+    alignItems: 'center',
+  },
+  regenerateButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
   closeButton: {
     backgroundColor: '#FF9A8A',
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: 8,
-    marginTop: 16,
+    width: '80%',
+    alignItems: 'center',
   },
   closeButtonText: {
     color: '#FFF',
-    textAlign: 'center',
     fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

@@ -18,38 +18,33 @@ export default function RootStack() {
     <NavigationContainer>
       <Stack.Navigator>
         {isSignedIn ? (
-          shouldAskQuestions ? (
+          <>
+            <Stack.Screen
+              name="Home"
+              component={BottomTab}
+              options={{
+                title: "Karsaku",
+                headerShown: false,
+              }}
+            />
             <Stack.Screen
               name="Questions"
               component={Questions}
               options={{
                 headerShown: false,
-                gestureEnabled: false
               }}
             />
-          ) : (
-            <>
-              <Stack.Screen
-                name="Home"
-                component={BottomTab}
-                options={{
-                  title: "Karsaku",
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="Profile"
-                component={Profile}
-                options={{ title: "Profile" }}
-              />
-              {/* Tambahkan rute Destination */}
-              <Stack.Screen
-                name="Destination"
-                component={Destination}
-                options={{ title: "Recommended Destinations" }}
-              />
-            </>
-          )
+            <Stack.Screen
+              name="Profile"
+              component={Profile}
+              options={{ title: "Profile" }}
+            />
+            <Stack.Screen
+              name="Destination"
+              component={Destination}
+              options={{ title: "Recommended Destinations" }}
+            />
+          </>
         ) : (
           <>
             <Stack.Screen

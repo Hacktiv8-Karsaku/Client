@@ -18,6 +18,7 @@ const REGISTER = gql`
     $email: String
     $password: String
     $job: String
+    $location: String
   ) {
     createUser(
       name: $name
@@ -25,6 +26,7 @@ const REGISTER = gql`
       email: $email
       password: $password
       job: $job
+      location: $location
     ) {
       _id
       name
@@ -32,6 +34,7 @@ const REGISTER = gql`
       email
       password
       job
+      location
     }
   }
 `;
@@ -43,6 +46,7 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [location, setLocation] = useState("");
   const navigation = useNavigation();
 
   const handleRegister = async () => {
@@ -55,6 +59,7 @@ export default function Register() {
           email: email,
           password: password,
           job: job,
+          location: location
         },
       });
       navigation.navigate("Login");
@@ -80,6 +85,12 @@ export default function Register() {
         onChangeText={setUsername}
         value={username}
         placeholder="Username"
+        style={styles.input}
+      />
+      <TextInput
+        onChangeText={setLocation}
+        value={location}
+        placeholder="Location"
         style={styles.input}
       />
       <TextInput
