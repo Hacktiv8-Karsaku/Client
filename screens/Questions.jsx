@@ -6,6 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  View,
+  Animated,
 } from "react-native";
 import { gql, useMutation } from "@apollo/client";
 import { useNavigation } from "@react-navigation/native";
@@ -13,6 +15,9 @@ import StressLv from "../components/StressLv";
 import { AuthContext } from "../context/AuthContext";
 import * as SecureStore from "expo-secure-store";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
+import { LinearGradient } from "expo-linear-gradient";
+import { Feather } from "@expo/vector-icons";
+import * as Animatable from "react-native-animatable";
 
 const UPDATE_USER_PREFERENCES = gql`
   mutation UpdateUserPreferences(
@@ -42,7 +47,7 @@ const UPDATE_USER_PREFERENCES = gql`
 export default function Questions() {
   const { setShouldAskQuestions } = useContext(AuthContext);
   const navigation = useNavigation();
-  
+
   const [activities, setActivities] = useState("");
   const [stressLevel, setStressLevel] = useState(5);
   const [preferredFoods, setPreferredFoods] = useState("");
@@ -72,92 +77,152 @@ export default function Questions() {
     }
   };
 
+  const renderInputField = (label, value, setValue, placeholder, icon) => (
+    <Animatable.View
+      animation="fadeInUp"
+      delay={300}
+      style={styles.inputContainer}
+    >
+      <Text style={styles.label}>
+        <Feather name={icon} size={18} color="#FF9A8A" /> {label}
+      </Text>
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={setValue}
+        placeholder={placeholder}
+        multiline={label.includes("activities")}
+        placeholderTextColor="#999"
+      />
+    </Animatable.View>
+  );
+
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Help us personalize your experience</Text>
+    <LinearGradient colors={["#FFF5F3", "#FFE5E5"]} style={styles.gradient}>
+      <ScrollView style={styles.container}>
+        <Animatable.Text animation="fadeInDown" style={styles.title}>
+          Let's Personalize Your Journey
+        </Animatable.Text>
 
-    
-      <Text style={styles.label}>What activities did you do today?</Text>
-      <TextInput
-        style={styles.input}
-        value={activities}
-        onChangeText={setActivities}
-        placeholder="Separate activities with commas"
-        multiline
-      />
+        <Animatable.View animation="fadeInUp" style={styles.card}>
+          {renderInputField(
+            "What activities did you do today?",
+            activities,
+            setActivities,
+            "e.g., working, reading, exercise",
+            "activity"
+          )}
 
-      {/* Stress Level Component */}
-      <StressLv value={stressLevel} onChange={setStressLevel} />
+          <StressLv value={stressLevel} onChange={setStressLevel} />
 
-      <Text style={styles.label}>Preferred Foods</Text>
-      <TextInput
-        style={styles.input}
-        value={preferredFoods}
-        onChangeText={setPreferredFoods}
-        placeholder="Separate foods with commas"
-      />
+          {renderInputField(
+            "What foods do you enjoy?",
+            preferredFoods,
+            setPreferredFoods,
+            "e.g., sushi, salad, pasta",
+            "coffee"
+          )}
 
-      <Text style={styles.label}>Foods to Avoid</Text>
-      <TextInput
-        style={styles.input}
-        value={avoidedFoods}
-        onChangeText={setAvoidedFoods}
-        placeholder="Separate foods with commas"
-      />
+          {renderInputField(
+            "Any foods to avoid?",
+            avoidedFoods,
+            setAvoidedFoods,
+            "e.g., spicy, dairy, nuts",
+            "alert-circle"
+          )}
 
-      <Text style={styles.label}>Where do you live?</Text>
-      <TextInput
-        style={styles.input}
-        value={domicile}
-        onChangeText={setDomicile}
-        placeholder="Enter your city and country (e.g., Jakarta, Indonesia)"
-      />
+          {renderInputField(
+            "Where do you live?",
+            domicile,
+            setDomicile,
+            "e.g., Jakarta, Indonesia",
+            "map-pin"
+          )}
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Submit</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <Animatable.View animation="fadeInUp" delay={600}>
+            <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+              <LinearGradient
+                colors={["#FF9A8A", "#FF8080"]}
+                style={styles.buttonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Text style={styles.buttonText}>Start My Journey</Text>
+                <Feather name="arrow-right" size={20} color="#FFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animatable.View>
+        </Animatable.View>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#FFF5F3",
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 30,
     color: "#FF9A8A",
     textAlign: "center",
     marginTop: 40,
   },
+  card: {
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#FFF",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
   label: {
     fontSize: 16,
-    marginBottom: 5,
-    color: "#333",
+    marginBottom: 8,
+    color: "#666",
+    fontWeight: "500",
+    flexDirection: "row",
+    alignItems: "center",
   },
   input: {
     backgroundColor: "#FFF",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 15,
+    padding: 15,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#FF9A8A",
+    borderColor: "#FFD6D6",
+    fontSize: 16,
+    color: "#333",
   },
   button: {
-    backgroundColor: "#FF9A8A",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
     marginTop: 20,
-    marginBottom: 40,
+    marginBottom: 20,
+    overflow: "hidden",
+    borderRadius: 12,
+  },
+  buttonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
   },
   buttonText: {
     color: "#FFF",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 18,
+    marginRight: 8,
   },
 });
