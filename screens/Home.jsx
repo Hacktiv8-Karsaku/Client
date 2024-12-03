@@ -18,6 +18,7 @@ import { GET_RECOMMENDATIONS } from "../graphql/queries";
 import TodoList from "../components/TodoList";
 import DetailDestination from "../components/DetailDestination";
 import VideoRecommendations from "../components/VideoRecommendations";
+import ChatWithProfessionalButton from '../components/ChatWithProfessionalButton';
 
 const HomePage = () => {
   const navigation = useNavigation();
@@ -89,6 +90,7 @@ const HomePage = () => {
               See All
             </Text>
           </View>
+          <ChatWithProfessionalButton />
 
           {/* Places Cards Section - Horizontal Scroll */}
           <View style={styles.section}>

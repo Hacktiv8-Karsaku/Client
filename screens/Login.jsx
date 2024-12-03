@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { AuthContext } from "../context/AuthContext";
+import ProfessionalLoginButton from '../components/ProfessionalLoginButton';
 import { LinearGradient } from "expo-linear-gradient";
 import * as Animatable from "react-native-animatable";
 import { Feather } from "@expo/vector-icons";
@@ -27,6 +28,7 @@ const LOGIN = gql`
       shouldAskQuestions
     }
   }
+}
 `;
 
 export default function Login() {
@@ -78,6 +80,10 @@ export default function Login() {
             duration={1500}
             style={styles.header}
           >
+            Register here
+          </Text>
+        </Text>
+        <ProfessionalLoginButton />
             <Text style={styles.headerText}>Welcome Back!</Text>
             <Text style={styles.subHeaderText}>Sign in to continue</Text>
           </Animatable.View>
