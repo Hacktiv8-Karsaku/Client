@@ -40,9 +40,9 @@ const GET_CHAT = gql`
   }
 `;
 
-const SEND_MESSAGE = gql`
-  mutation SendMessage($chatId: ID!, $content: String!) {
-    sendMessage(chatId: $chatId, content: $content) {
+const SEND_MESSAGE_PROFESSIONAL = gql`
+  mutation SendMessageProfessional($chatId: ID!, $content: String!) {
+    sendMessageProfessional(chatId: $chatId, content: $content) {
       _id
       messages {
         _id
@@ -116,7 +116,33 @@ const formatMessageTime = (timestamp) => {
   }
 };
 
-const ChatScreen = ({ route, navigation }) => {
+const Message = ({ message, isUser }) => (
+  <View style={[
+    styles.messageContainer,
+    isUser ? styles.userMessage : styles.professionalMessage
+  ]}>
+    <Text style={[
+      styles.messageSender,
+      isUser ? styles.userSender : styles.professionalSender
+    ]}>
+      {message.senderDetails?.name || 'Unknown'}
+    </Text>
+    <Text style={[
+      styles.messageContent,
+      isUser ? styles.userContent : styles.professionalContent
+    ]}>
+      {message.content}
+    </Text>
+    <Text style={styles.messageTime}>
+      {new Date(message.timestamp).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })}
+    </Text>
+  </View>
+);
+
+const ProfessionalChatScreen = ({ route, navigation }) => {
   const { chatId } = route.params;
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
@@ -124,10 +150,23 @@ const ChatScreen = ({ route, navigation }) => {
   const socketRef = useRef();
   const [loading, setLoading] = useState(true);
 
-  const [sendMessage] = useMutation(SEND_MESSAGE, {
+  const [sendMessageProfessional] = useMutation(SEND_MESSAGE_PROFESSIONAL, {
     onCompleted: () => {
       // Trigger chat update via socket after successful mutation
       socketRef.current?.emit('chatUpdated', chatId);
+    }
+  });
+
+  const { loading: queryLoading, error, refetch } = useQuery(GET_CHAT, {
+    variables: { chatId },
+    onCompleted: (data) => {
+      if (data?.getChat) {
+        const userParticipant = data.getChat.participants.find(p => p.role === 'user');
+        setMessages(data.getChat.messages);
+        navigation.setOptions({
+          title: userParticipant?.name || 'Chat'
+        });
+      }
     }
   });
 
@@ -139,24 +178,20 @@ const ChatScreen = ({ route, navigation }) => {
     
     socketRef.current.emit('join', chatId);
     
-    // Listen for chat data updates
     socketRef.current.on('chatData', (chat) => {
       if (chat) {
-        const userParticipant = chat.participants[0];
-        const professionalParticipant = chat.participants[1];
-
         const processedMessages = chat.messages.map(msg => ({
           ...msg,
           senderDetails: {
-            _id: msg.sender,
-            name: msg.sender === userParticipant._id ? userParticipant.name : professionalParticipant.name,
-            role: msg.sender === userParticipant._id ? 'user' : 'professional'
+            ...msg.senderDetails,
+            role: msg.sender === chat.participants[1]._id ? 'professional' : 'user'
           }
         }));
 
         setMessages(processedMessages);
+        const userParticipant = chat.participants.find(p => p.role === 'user');
         navigation.setOptions({
-          title: professionalParticipant?.name || 'Chat'
+          title: userParticipant?.name || 'Chat'
         });
         setLoading(false);
       }
@@ -170,80 +205,108 @@ const ChatScreen = ({ route, navigation }) => {
 
   const handleSend = async () => {
     if (!message.trim()) return;
-  
-    const newMessage = {
-      _id: Date.now().toString(),
-      content: message.trim(),
-      timestamp: Date.now().toString(),
-      sender: 'currentUserId', // Replace with actual user ID
-      senderDetails: { _id: 'currentUserId', name: 'You', role: 'user' }
-    };
-    setMessages((prev) => [...prev, newMessage]);
-  
+
     try {
-      await sendMessage({
-        variables: { chatId, content: message.trim() },
+      await sendMessageProfessional({
+        variables: { 
+          chatId, 
+          content: message.trim() 
+        }
       });
+
+      setMessage('');
+      flatListRef.current?.scrollToEnd({ animated: true });
     } catch (error) {
       console.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to send message');
-      setMessages((prev) => prev.filter((msg) => msg._id !== newMessage._id));
     }
-    setMessage('');
-    flatListRef.current?.scrollToEnd({ animated: true });
   };
-  const renderMessage = ({ item }) => {
-    // For user's chat screen, messages from user are sender
-    const isSender = item.senderDetails?.role === 'user';
-    const formattedTime = formatMessageTime(item.timestamp);
-    
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error refreshing:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && !loading) {
     return (
-      <View style={[
-        styles.messageContainer,
-        isSender ? styles.senderMessage : styles.receiverMessage
-      ]}>
-        <Text style={[
-          styles.messageContent,
-          isSender ? styles.senderContent : styles.receiverContent
-        ]}>
-          {item.content}
-        </Text>
-        {formattedTime && (
-          <Text style={[
-            styles.messageTime,
-            isSender ? styles.senderTime : styles.receiverTime
-          ]}>
-            {formattedTime}
-          </Text>
-        )}
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#FF9A8A" />
       </View>
     );
-  };
+  }
 
-  if (loading) return <ActivityIndicator size="large" color="#FF9A8A" />;
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>Error loading chat</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView 
         style={styles.container} 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <FlatList
           ref={flatListRef}
           data={messages}
-          renderItem={renderMessage}
+          renderItem={({ item }) => {
+            const isProfessionalMessage = item.senderDetails?.role === 'professional';
+            return (
+              <View style={[
+                styles.messageContainer,
+                isProfessionalMessage ? styles.senderMessage : styles.receiverMessage
+              ]}>
+                <Text style={[
+                  styles.messageContent,
+                  isProfessionalMessage ? styles.senderContent : styles.receiverContent
+                ]}>
+                  {item.content}
+                </Text>
+                <Text style={[
+                  styles.messageTime,
+                  isProfessionalMessage ? styles.senderTime : styles.receiverTime
+                ]}>
+                  {formatMessageTime(item.timestamp)}
+                </Text>
+              </View>
+            );
+          }}
           keyExtractor={item => item._id}
+          contentContainerStyle={styles.messagesList}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+          onLayout={() => flatListRef.current?.scrollToEnd()}
+          refreshing={loading}
+          onRefresh={handleRefresh}
         />
+
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             value={message}
             onChangeText={setMessage}
             placeholder="Type a message..."
+            placeholderTextColor="#999"
+            multiline
+            maxLength={500}
           />
           <TouchableOpacity 
-            style={styles.sendButton} 
+            style={[
+              styles.sendButton,
+              !message.trim() && styles.sendButtonDisabled
+            ]} 
             onPress={handleSend}
             disabled={!message.trim()}
           >
@@ -258,37 +321,47 @@ const ChatScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF5F3',
+    backgroundColor: '#fff',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFF5F3',
   },
   messagesList: {
-    padding: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 15,
   },
   messageContainer: {
     maxWidth: '80%',
-    marginVertical: 8,
-    padding: 12,
-    borderRadius: 12,
+    marginVertical: 5,
+    padding: 10,
+    borderRadius: 15,
   },
   senderMessage: {
     alignSelf: 'flex-end',
     backgroundColor: '#FF9A8A',
     borderBottomRightRadius: 4,
-    marginLeft: 40,
   },
   receiverMessage: {
     alignSelf: 'flex-start',
     backgroundColor: '#F0F0F0',
     borderBottomLeftRadius: 4,
-    marginRight: 40,
+  },
+  messageSender: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  userSender: {
+    color: '#fff',
+    textAlign: 'right',
+  },
+  professionalSender: {
+    color: '#666',
   },
   messageContent: {
     fontSize: 16,
+    marginBottom: 4,
   },
   senderContent: {
     color: '#FFF',
@@ -298,40 +371,38 @@ const styles = StyleSheet.create({
   },
   messageTime: {
     fontSize: 10,
-    marginTop: 4,
+    color: '#666',
+    alignSelf: 'flex-end',
   },
   senderTime: {
     color: '#FFF',
-    opacity: 0.8,
-    textAlign: 'right',
+    opacity: 0.7,
+    alignSelf: 'flex-end',
   },
   receiverTime: {
     color: '#666',
-    textAlign: 'left',
+    alignSelf: 'flex-start',
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#FFF',
+    padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#EEE',
-    alignItems: 'center',
+    borderTopColor: '#eee',
+    backgroundColor: '#fff',
   },
   input: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    marginRight: 10,
+    padding: 10,
+    backgroundColor: '#f8f8f8',
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
     maxHeight: 100,
-    color: '#333',
   },
   sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#FF9A8A',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -339,9 +410,21 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   errorText: {
-    color: '#F44336',
+    color: 'red',
+    fontSize: 16,
+  },
+  retryButton: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#FF9A8A',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  retryText: {
+    color: '#fff',
     fontSize: 16,
   },
 });
 
-export default ChatScreen; 
+export default ProfessionalChatScreen; 

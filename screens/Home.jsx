@@ -15,6 +15,7 @@ import MapDisplay from "../components/MapView";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
 import TodoList from "../components/TodoList";
 import VideoRecommendations from "../components/VideoRecommendations";
+import ChatWithProfessionalButton from '../components/ChatWithProfessionalButton';
 
 const HomePage = () => {
   const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
@@ -71,6 +72,7 @@ const HomePage = () => {
               See All
             </Text>
           </View>
+          <ChatWithProfessionalButton />
 
           {/* Places Cards Section - Horizontal Scroll */}
           <View style={styles.section}>

@@ -14,56 +14,72 @@ import {
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { AuthContext } from "../context/AuthContext";
-import ProfessionalLoginButton from '../components/ProfessionalLoginButton';
 
-const LOGIN = gql`
- mutation Login($username: String, $password: String) {
-  login(username: $username, password: $password) {
-    access_token
-    userId
-    username
+const LOGIN_PROFESSIONAL = gql`
+  mutation LoginProfessional($email: String!, $password: String!) {
+    loginProfessional(email: $email, password: $password) {
+      access_token
+      professionalId
+      name
+    }
   }
-}
 `;
 
-export default function Login() {
-  const [login, { loading }] = useMutation(LOGIN);
-  const [username, setUsername] = useState("");
+export default function LoginProfessional() {
+  const [loginProfessional, { loading }] = useMutation(LOGIN_PROFESSIONAL);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { setIsSignedIn } = useContext(AuthContext);
   const navigation = useNavigation();
 
   const handleLogin = async () => {
     try {
-      const result = await login({
+      const result = await loginProfessional({
         variables: {
-          username: username,
+          email: email,
           password: password,
         },
       });
-      await SecureStore.setItemAsync(
-        "access_token",
-        result.data.login.access_token
-      );
-      await SecureStore.setItemAsync("user_id", result.data.login.userId);
+      
+      await Promise.all([
+        SecureStore.setItemAsync(
+          "access_token",
+          result.data.loginProfessional.access_token
+        ),
+        SecureStore.setItemAsync(
+          "professional_id", 
+          result.data.loginProfessional.professionalId
+        ),
+        SecureStore.setItemAsync(
+          "role",
+          "professional"
+        )
+      ]);
+      
       setIsSignedIn(true);
       setTimeout(() => {
-        navigation.replace("Questions");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'ProfessionalDashboard' }],
+        });
       }, 100);
     } catch (error) {
       console.log(error);
       Alert.alert("Login Error", error.message);
     }
   };
+
   return (
     <TouchableWithoutFeedback style={{ flex: 1 }} onPress={Keyboard.dismiss}>
       <View style={styles.container}>
-        <Text style={styles.title}>Login</Text>
+        <Text style={styles.title}>Professional Login</Text>
         <TextInput
-          onChangeText={setUsername}
-          value={username}
-          placeholder="Username"
+          onChangeText={setEmail}
+          value={email}
+          placeholder="Email"
           style={styles.input}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
         <TextInput
           onChangeText={setPassword}
@@ -79,16 +95,6 @@ export default function Login() {
         ) : (
           <ActivityIndicator size="large" color="#ff9a8a" />
         )}
-        <Text style={styles.registerPrompt}>
-          Don't have any account?{" "}
-          <Text
-            style={styles.registerLink}
-            onPress={() => navigation.navigate("Register")}
-          >
-            Register here
-          </Text>
-        </Text>
-        <ProfessionalLoginButton />
       </View>
     </TouchableWithoutFeedback>
   );
@@ -128,14 +134,5 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "bold",
     fontSize: 16,
-  },
-  registerPrompt: {
-    marginTop: 20,
-    fontSize: 14,
-    color: "#333",
-  },
-  registerLink: {
-    color: "#FF9A8A",
-    fontWeight: "bold",
-  },
+  }
 });
