@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { Feather } from '@expo/vector-icons';
-import io from 'socket.io-client';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const GET_CHAT = gql`
@@ -119,81 +118,43 @@ const formatMessageTime = (timestamp) => {
 const ChatScreen = ({ route, navigation }) => {
   const { chatId } = route.params;
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
   const flatListRef = useRef();
-  const socketRef = useRef();
-  const [loading, setLoading] = useState(true);
 
-  const [sendMessage] = useMutation(SEND_MESSAGE, {
-    onCompleted: () => {
-      // Trigger chat update via socket after successful mutation
-      socketRef.current?.emit('chatUpdated', chatId);
-    }
-  });
-
-  useEffect(() => {
-    socketRef.current = io(process.env.EXPO_PUBLIC_SOCKET_URL, {
-      transports: ['websocket'],
-      path: '/socket.io'
-    });
-    
-    socketRef.current.emit('join', chatId);
-    
-    // Listen for chat data updates
-    socketRef.current.on('chatData', (chat) => {
-      if (chat) {
-        const userParticipant = chat.participants[0];
-        const professionalParticipant = chat.participants[1];
-
-        const processedMessages = chat.messages.map(msg => ({
-          ...msg,
-          senderDetails: {
-            _id: msg.sender,
-            name: msg.sender === userParticipant._id ? userParticipant.name : professionalParticipant.name,
-            role: msg.sender === userParticipant._id ? 'user' : 'professional'
-          }
-        }));
-
-        setMessages(processedMessages);
+  const { loading, data, refetch } = useQuery(GET_CHAT, {
+    variables: { chatId },
+    pollInterval: 200,
+    onCompleted: (data) => {
+      if (data?.getChat) {
+        const professionalParticipant = data.getChat.participants.find(p => p.role === 'professional');
         navigation.setOptions({
           title: professionalParticipant?.name || 'Chat'
         });
-        setLoading(false);
       }
-    });
+    }
+  });
 
-    return () => {
-      socketRef.current.emit('leave', chatId);
-      socketRef.current.disconnect();
-    };
-  }, [chatId, navigation]);
+  const [sendMessage] = useMutation(SEND_MESSAGE, {
+    onCompleted: () => {
+      refetch(); // Refetch chat data after sending a message
+    }
+  });
 
   const handleSend = async () => {
     if (!message.trim()) return;
-  
-    const newMessage = {
-      _id: Date.now().toString(),
-      content: message.trim(),
-      timestamp: Date.now().toString(),
-      sender: 'currentUserId', // Replace with actual user ID
-      senderDetails: { _id: 'currentUserId', name: 'You', role: 'user' }
-    };
-    setMessages((prev) => [...prev, newMessage]);
-  
+
     try {
       await sendMessage({
         variables: { chatId, content: message.trim() },
       });
+      setMessage('');
+      flatListRef.current?.scrollToEnd({ animated: true });
     } catch (error) {
       console.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to send message');
-      setMessages((prev) => prev.filter((msg) => msg._id !== newMessage._id));
     }
-    setMessage('');
-    flatListRef.current?.scrollToEnd({ animated: true });
   };
+
   const renderMessage = ({ item }) => {
-    // For user's chat screen, messages from user are sender
     const isSender = item.senderDetails?.role === 'user';
     const formattedTime = formatMessageTime(item.timestamp);
     
@@ -230,7 +191,7 @@ const ChatScreen = ({ route, navigation }) => {
       >
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={data?.getChat?.messages || []}
           renderItem={renderMessage}
           keyExtractor={item => item._id}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd()}

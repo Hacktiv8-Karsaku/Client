@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { Feather } from '@expo/vector-icons';
-import io from 'socket.io-client';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const GET_CHAT = gql`
@@ -145,24 +144,14 @@ const Message = ({ message, isUser }) => (
 const ProfessionalChatScreen = ({ route, navigation }) => {
   const { chatId } = route.params;
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
   const flatListRef = useRef();
-  const socketRef = useRef();
-  const [loading, setLoading] = useState(true);
 
-  const [sendMessageProfessional] = useMutation(SEND_MESSAGE_PROFESSIONAL, {
-    onCompleted: () => {
-      // Trigger chat update via socket after successful mutation
-      socketRef.current?.emit('chatUpdated', chatId);
-    }
-  });
-
-  const { loading: queryLoading, error, refetch } = useQuery(GET_CHAT, {
+  const { loading, data, refetch } = useQuery(GET_CHAT, {
     variables: { chatId },
+    pollInterval: 200,
     onCompleted: (data) => {
       if (data?.getChat) {
         const userParticipant = data.getChat.participants.find(p => p.role === 'user');
-        setMessages(data.getChat.messages);
         navigation.setOptions({
           title: userParticipant?.name || 'Chat'
         });
@@ -170,50 +159,19 @@ const ProfessionalChatScreen = ({ route, navigation }) => {
     }
   });
 
-  useEffect(() => {
-    socketRef.current = io(process.env.EXPO_PUBLIC_SOCKET_URL, {
-      transports: ['websocket'],
-      path: '/socket.io'
-    });
-    
-    socketRef.current.emit('join', chatId);
-    
-    socketRef.current.on('chatData', (chat) => {
-      if (chat) {
-        const processedMessages = chat.messages.map(msg => ({
-          ...msg,
-          senderDetails: {
-            ...msg.senderDetails,
-            role: msg.sender === chat.participants[1]._id ? 'professional' : 'user'
-          }
-        }));
-
-        setMessages(processedMessages);
-        const userParticipant = chat.participants.find(p => p.role === 'user');
-        navigation.setOptions({
-          title: userParticipant?.name || 'Chat'
-        });
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      socketRef.current.emit('leave', chatId);
-      socketRef.current.disconnect();
-    };
-  }, [chatId, navigation]);
+  const [sendMessageProfessional] = useMutation(SEND_MESSAGE_PROFESSIONAL, {
+    onCompleted: () => {
+      refetch(); // Refetch chat data after sending a message
+    }
+  });
 
   const handleSend = async () => {
     if (!message.trim()) return;
 
     try {
       await sendMessageProfessional({
-        variables: { 
-          chatId, 
-          content: message.trim() 
-        }
+        variables: { chatId, content: message.trim() },
       });
-
       setMessage('');
       flatListRef.current?.scrollToEnd({ animated: true });
     } catch (error) {
@@ -222,91 +180,57 @@ const ProfessionalChatScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleRefresh = async () => {
-    setLoading(true);
-    try {
-      await refetch();
-    } catch (error) {
-      console.error('Error refreshing:', error);
-    } finally {
-      setLoading(false);
-    }
+  const renderMessage = ({ item }) => {
+    const isProfessionalMessage = item.senderDetails?.role === 'professional';
+    const formattedTime = formatMessageTime(item.timestamp);
+    
+    return (
+      <View style={[
+        styles.messageContainer,
+        isProfessionalMessage ? styles.senderMessage : styles.receiverMessage
+      ]}>
+        <Text style={[
+          styles.messageContent,
+          isProfessionalMessage ? styles.senderContent : styles.receiverContent
+        ]}>
+          {item.content}
+        </Text>
+        {formattedTime && (
+          <Text style={[
+            styles.messageTime,
+            isProfessionalMessage ? styles.senderTime : styles.receiverTime
+          ]}>
+            {formattedTime}
+          </Text>
+        )}
+      </View>
+    );
   };
 
-  if (loading && !loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#FF9A8A" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Error loading chat</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  if (loading) return <ActivityIndicator size="large" color="#FF9A8A" />;
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
         style={styles.container} 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <FlatList
           ref={flatListRef}
-          data={messages}
-          renderItem={({ item }) => {
-            const isProfessionalMessage = item.senderDetails?.role === 'professional';
-            return (
-              <View style={[
-                styles.messageContainer,
-                isProfessionalMessage ? styles.senderMessage : styles.receiverMessage
-              ]}>
-                <Text style={[
-                  styles.messageContent,
-                  isProfessionalMessage ? styles.senderContent : styles.receiverContent
-                ]}>
-                  {item.content}
-                </Text>
-                <Text style={[
-                  styles.messageTime,
-                  isProfessionalMessage ? styles.senderTime : styles.receiverTime
-                ]}>
-                  {formatMessageTime(item.timestamp)}
-                </Text>
-              </View>
-            );
-          }}
+          data={data?.getChat?.messages || []}
+          renderItem={renderMessage}
           keyExtractor={item => item._id}
-          contentContainerStyle={styles.messagesList}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
-          onLayout={() => flatListRef.current?.scrollToEnd()}
-          refreshing={loading}
-          onRefresh={handleRefresh}
         />
-
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             value={message}
             onChangeText={setMessage}
             placeholder="Type a message..."
-            placeholderTextColor="#999"
-            multiline
-            maxLength={500}
           />
           <TouchableOpacity 
-            style={[
-              styles.sendButton,
-              !message.trim() && styles.sendButtonDisabled
-            ]} 
+            style={styles.sendButton} 
             onPress={handleSend}
             disabled={!message.trim()}
           >
