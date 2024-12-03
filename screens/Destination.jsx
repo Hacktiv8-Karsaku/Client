@@ -1,38 +1,27 @@
 import React from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from "react-native";
 import DetailDestination from "../components/DetailDestination";
+import { useQuery } from "@apollo/client";
+import { GET_RECOMMENDATIONS } from "../graphql/queries";
 
 const Destination = () => {
-  const dummyData = [
-    {
-      id: "1",
-      name: "Beach Paradise",
-      rating: 4.8,
-      description: "A beautiful beach with clear blue water.",
-      image: "https://vietnam.travel/sites/default/files/inline-images/shutterstock_585187837.jpg",
-    },
-    {
-      id: "2",
-      name: "Mountain Retreat",
-      rating: 4.6,
-      description: "A peaceful retreat in the mountains.",
-      image: "https://cdn.britannica.com/72/11472-050-B9734C89/Bear-Hat-Mountain-Hidden-Lake-Montana-Glacier.jpg",
-    },
-    {
-      id: "3",
-      name: "Forest Adventure",
-      rating: 4.7,
-      description: "An exciting adventure in the forest.",
-      image: "https://resilience-blog.com/wp-content/uploads/2022/06/cover-HD-scaled.jpg",
-    },
-  ];
+  const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
+  const places = data?.getUserProfile?.recommendations?.places || [];
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#FF9A8A" />;
+  }
+
+  if (error) {
+    return <Text>Error loading destinations</Text>;
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Recommended Destinations</Text>
       <FlatList
-        data={dummyData}
-        keyExtractor={(item) => item.id}
+        data={places}
+        keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => <DetailDestination place={item} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}

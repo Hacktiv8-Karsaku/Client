@@ -3,27 +3,45 @@ import { View, Text, StyleSheet, ImageBackground } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 const DetailDestination = ({ place, isPreview }) => {
-  const { name, rating, description, image } = place;
+  const { 
+    name, 
+    rating, 
+    description, 
+    photos,
+    vicinity,
+    types,
+    opening_hours 
+  } = place;
+
+  // Mengambil foto dari Google Places API
+  const photoUrl = photos?.[0]?.photo_reference 
+    ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photos[0].photo_reference}&key=YOUR_API_KEY`
+    : "https://via.placeholder.com/400";
 
   return (
     <View style={[styles.container, isPreview && styles.preview]}>
-      {/* Background Image */}
       <ImageBackground
-        source={{ uri: image || "https://statik.tempo.co/data/2021/07/24/id_1037336/1037336_720.jpg" }}
+        source={{ uri: photoUrl }}
         style={[styles.background, isPreview && styles.previewBackground]}
       >
-        {/* Gradient Overlay */}
         <LinearGradient
           colors={["rgba(0, 0, 0, 0.6)", "transparent"]}
           start={[0, 1]}
           end={[0, 0]}
           style={styles.gradient}
         />
-        {/* Text Content */}
         <View style={styles.textContainer}>
           <Text style={styles.title}>{name}</Text>
           <Text style={styles.rating}>Rating: {rating || 0}/5</Text>
-          {!isPreview && <Text style={styles.description}>{description}</Text>}
+          {!isPreview && (
+            <>
+              <Text style={styles.description}>{vicinity}</Text>
+              <Text style={styles.type}>{types?.[0]?.replace(/_/g, ' ')}</Text>
+              <Text style={styles.status}>
+                {opening_hours?.open_now ? "Open Now" : "Closed"}
+              </Text>
+            </>
+          )}
         </View>
       </ImageBackground>
     </View>
@@ -67,6 +85,14 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   description: {
+    fontSize: 12,
+    color: "#FFFFFF",
+  },
+  type: {
+    fontSize: 12,
+    color: "#FFFFFF",
+  },
+  status: {
     fontSize: 12,
     color: "#FFFFFF",
   },
