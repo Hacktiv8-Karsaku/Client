@@ -14,6 +14,9 @@ import {
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { AuthContext } from "../context/AuthContext";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Animatable from "react-native-animatable";
+import { Feather } from "@expo/vector-icons";
 
 const LOGIN = gql`
   mutation Login($username: String, $password: String) {
@@ -30,6 +33,7 @@ export default function Login() {
   const [login, { loading }] = useMutation(LOGIN);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [secureEntry, setSecureEntry] = useState(true);
   const { setIsSignedIn, setShouldAskQuestions } = useContext(AuthContext);
   const navigation = useNavigation();
 
@@ -41,56 +45,105 @@ export default function Login() {
           password: password,
         },
       });
-      
-      await SecureStore.setItemAsync("access_token", result.data.login.access_token);
-      await SecureStore.setItemAsync("user_id", result.data.login.userId);
-      
+
       await SecureStore.setItemAsync(
-        "questions_completed", 
+        "access_token",
+        result.data.login.access_token
+      );
+      await SecureStore.setItemAsync("user_id", result.data.login.userId);
+      await SecureStore.setItemAsync(
+        "questions_completed",
         result.data.login.shouldAskQuestions ? "false" : "true"
       );
-      
+
       setShouldAskQuestions(result.data.login.shouldAskQuestions);
-      
       setIsSignedIn(true);
     } catch (error) {
       console.log(error);
       Alert.alert("Login Error", error.message);
     }
   };
+
   return (
-    <TouchableWithoutFeedback style={{ flex: 1 }} onPress={Keyboard.dismiss}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
-        <Text style={styles.title}>Login</Text>
-        <TextInput
-          onChangeText={setUsername}
-          value={username}
-          placeholder="Username"
-          style={styles.input}
-        />
-        <TextInput
-          onChangeText={setPassword}
-          value={password}
-          placeholder="Password"
-          style={styles.input}
-          secureTextEntry={true}
-        />
-        {!loading ? (
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Login</Text>
-          </TouchableOpacity>
-        ) : (
-          <ActivityIndicator size="large" color="#ff9a8a" />
-        )}
-        <Text style={styles.registerPrompt}>
-          Don't have any account?{" "}
-          <Text
-            style={styles.registerLink}
-            onPress={() => navigation.navigate("Register")}
+        <LinearGradient
+          colors={["#FF9A8A", "#FFF5F3"]}
+          style={styles.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Animatable.View
+            animation="fadeIn"
+            duration={1500}
+            style={styles.header}
           >
-            Register here
-          </Text>
-        </Text>
+            <Text style={styles.headerText}>Welcome Back!</Text>
+            <Text style={styles.subHeaderText}>Sign in to continue</Text>
+          </Animatable.View>
+
+          <Animatable.View
+            animation="fadeInUpBig"
+            duration={1500}
+            style={styles.footer}
+          >
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <Feather name="user" size={20} color="#FF9A8A" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Username"
+                  onChangeText={setUsername}
+                  value={username}
+                  placeholderTextColor="#999"
+                />
+              </View>
+
+              <View style={styles.inputWrapper}>
+                <Feather name="lock" size={20} color="#FF9A8A" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  onChangeText={setPassword}
+                  value={password}
+                  secureTextEntry={secureEntry}
+                  placeholderTextColor="#999"
+                />
+                <TouchableOpacity onPress={() => setSecureEntry(!secureEntry)}>
+                  <Feather
+                    name={secureEntry ? "eye-off" : "eye"}
+                    size={20}
+                    color="#FF9A8A"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {loading ? (
+                <ActivityIndicator
+                  size="large"
+                  color="#FF9A8A"
+                  style={styles.loader}
+                />
+              ) : (
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={handleLogin}
+                >
+                  <Text style={styles.loginButtonText}>LOGIN</Text>
+                </TouchableOpacity>
+              )}
+
+              <View style={styles.registerContainer}>
+                <Text style={styles.registerText}>Don't have an account? </Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("Register")}
+                >
+                  <Text style={styles.registerLink}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Animatable.View>
+        </LinearGradient>
       </View>
     </TouchableWithoutFeedback>
   );
@@ -99,45 +152,109 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  gradient: {
+    flex: 1,
+  },
+  header: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFF5F3",
+    paddingHorizontal: 20,
+    paddingBottom: 50,
   },
-  title: {
-    fontSize: 32,
+  headerText: {
+    color: "#FFF",
+    fontSize: 40,
     fontWeight: "bold",
-    color: "#FF9A8A",
-    marginBottom: 20,
+    textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 10,
+  },
+  subHeaderText: {
+    color: "#FFF",
+    fontSize: 16,
+    marginTop: 10,
+  },
+  footer: {
+    flex: 2,
+    backgroundColor: "#FFF",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -3,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  inputContainer: {
+    marginTop: 20,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8F8F8",
+    borderRadius: 15,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    height: 55,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   input: {
-    width: "80%",
-    padding: 10,
-    marginVertical: 10,
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#FF9A8A",
-  },
-  button: {
-    marginTop: 20,
-    width: "80%",
-    backgroundColor: "#FF9A8A",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#FFF",
-    fontWeight: "bold",
+    flex: 1,
+    marginLeft: 10,
+    color: "#333",
     fontSize: 16,
   },
-  registerPrompt: {
+  loginButton: {
+    backgroundColor: "#FF9A8A",
+    padding: 15,
+    borderRadius: 15,
+    alignItems: "center",
+    shadowColor: "#FF9A8A",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
     marginTop: 20,
+  },
+  loginButtonText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "bold",
+    letterSpacing: 1,
+  },
+  loader: {
+    marginVertical: 20,
+  },
+  registerContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 20,
+  },
+  registerText: {
+    color: "#666",
     fontSize: 14,
-    color: "#333",
   },
   registerLink: {
     color: "#FF9A8A",
+    fontSize: 14,
     fontWeight: "bold",
   },
 });
