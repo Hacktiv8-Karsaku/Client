@@ -3,6 +3,8 @@ import { createContext, useContext } from "react";
 export const AuthContext = createContext({
   isSignedIn: false,
   setIsSignedIn: () => {},
+  shouldAskQuestions: true,
+  setShouldAskQuestions: () => {},
 });
 
 export const useIsSignedIn = () => {

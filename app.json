@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "Karsaku",
+    "slug": "karsaku",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "config": {
-        "googleMapsApiKey": "AIzaSyAlzLI9jjYoUjUj60DlLqYAuMn0MpvvzWc"
+        "googleMapsApiKey": "AIzaSyD1KhTldI_xlrWL014hnM3YgbPSdhxDYQY"
       }
     },
     "android": {
@@ -25,7 +25,7 @@
       },
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyAlzLI9jjYoUjUj60DlLqYAuMn0MpvvzWc"
+          "apiKey": "AIzaSyD1KhTldI_xlrWL014hnM3YgbPSdhxDYQY"
         }
       }
     },

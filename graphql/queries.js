@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client';
+import { gql } from "@apollo/client";
 
 export const GET_SAVED_TODOS = gql`
   query GetSavedTodos {
@@ -23,6 +23,11 @@ export const GET_RECOMMENDATIONS = gql`
         places {
           name
           description
+          address
+          coordinates {
+            lat
+            lng
+          }
         }
         foodVideos {
           title
@@ -42,6 +47,29 @@ export const GET_USER_PROFILE = gql`
       name
       username
       email
+      job
     }
   }
-`; 
+`;
+
+export const GET_DESTINATIONS = gql`
+  query GetDestinations {
+    getDestinations {
+      id
+      name
+      imageUrl
+      rating
+      description
+    }
+  }
+`;
+
+export const REGENERATE_TODOS = gql`
+  mutation RegenerateTodos {
+    regenerateTodos {
+      recommendations {
+        todoList
+      }
+    }
+  }
+`;

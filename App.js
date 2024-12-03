@@ -9,14 +9,28 @@ import { ActivityIndicator, View } from "react-native";
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [shouldAskQuestions, setShouldAskQuestions] = useState(true);
 
   useEffect(() => {
     async function checkToken() {
-      const token = await SecureStore.getItemAsync("access_token");
-      if (token) {
-        setIsSignedIn(true);
+      try {
+        const token = await SecureStore.getItemAsync("access_token");
+        const questionStatus = await SecureStore.getItemAsync("questions_completed");
+        
+        if (token) {
+          setIsSignedIn(true);
+          setShouldAskQuestions(questionStatus !== "true");
+        } else {
+          setIsSignedIn(false);
+          setShouldAskQuestions(true);
+        }
+      } catch (error) {
+        console.error("Error checking auth state:", error);
+        setIsSignedIn(false);
+        setShouldAskQuestions(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     checkToken();
   }, []);
@@ -31,7 +45,14 @@ export default function App() {
 
   return (
     <ApolloProvider client={client}>
-      <AuthContext.Provider value={{ isSignedIn, setIsSignedIn }}>
+      <AuthContext.Provider 
+        value={{ 
+          isSignedIn, 
+          setIsSignedIn, 
+          shouldAskQuestions, 
+          setShouldAskQuestions 
+        }}
+      >
         <RootStack />
       </AuthContext.Provider>
     </ApolloProvider>

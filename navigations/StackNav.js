@@ -13,12 +13,13 @@ import ProfessionalChat from "../screens/ProfessionalChat";
 import UserChatHistory from "../screens/userChatHistory";
 import * as SecureStore from 'expo-secure-store';
 import { useContext, useState, useEffect } from "react";
+import Destination from "../screens/Destination";
 import { AuthContext } from "../context/AuthContext";
 
 const Stack = createNativeStackNavigator();
 
 export default function RootStack() {
-  const { isSignedIn, userRole } = useContext(AuthContext);
+  const { isSignedIn, userRole, shouldAskQuestions } = useContext(AuthContext);
 
   return (
     <NavigationContainer>
@@ -52,6 +53,15 @@ export default function RootStack() {
           ) : (
             // User Routes
             <>
+            {shouldAskQuestions ? (
+              <Stack.Screen
+                name="Questions"
+                component={Questions}
+                options={{
+                  headerShown: false,
+                }}
+              />
+            ) : (
               <Stack.Screen
                 name="Home"
                 component={BottomTab}
@@ -59,11 +69,6 @@ export default function RootStack() {
                   title: "Karsaku",
                   headerShown: false,
                 }}
-              />
-              <Stack.Screen
-                name="Questions"
-                component={Questions}
-                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="Profile"
@@ -90,6 +95,13 @@ export default function RootStack() {
               />
             </>
           )
+            )}
+            <Stack.Screen
+              name="Destination"
+              component={Destination}
+              options={{ title: "Recommended Destinations" }}
+            />
+          </>
         ) : (
           // Auth Routes
           <>
