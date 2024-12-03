@@ -11,6 +11,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import io from 'socket.io-client';
 import * as SecureStore from 'expo-secure-store';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Audio } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
@@ -19,15 +20,17 @@ const VideoCallScreen = ({ route, navigation }) => {
   const { chatId, participantId } = route.params;
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [facing, setFacing] = useState('front');
+  const [permission, requestPermission] = useCameraPermissions();
+  const [audioPermission, setAudioPermission] = useState(null);
   const socket = useRef(null);
   const [callStatus, setCallStatus] = useState('connecting');
-  const [hasAudioPermission, setHasAudioPermission] = useState(null);
-  const audioRef = useRef(null);
+  const recording = useRef(null);
 
   useEffect(() => {
     console.log('VideoCallScreen mounted');
     setupCall();
-    requestPermissions();
+    requestAudioPermission();
     return () => {
       console.log('VideoCallScreen unmounted');
       if (socket.current) {
@@ -37,29 +40,58 @@ const VideoCallScreen = ({ route, navigation }) => {
     };
   }, []);
 
-  const requestPermissions = async () => {
-    console.log('Requesting permissions...');
+  const setupAudio = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+    } catch (error) {
+      console.error('Error setting up audio:', error);
+    }
+  };
+
+  const stopAudio = async () => {
+    try {
+      if (recording.current) {
+        await recording.current.stopAndUnloadAsync();
+        recording.current = null;
+      }
+    } catch (error) {
+      console.error('Error stopping audio:', error);
+    }
+  };
+
+  const requestAudioPermission = async () => {
     try {
       const { status: audioStatus } = await Audio.requestPermissionsAsync();
       console.log('Audio permission status:', audioStatus);
-      setHasAudioPermission(audioStatus === 'granted');
+      setAudioPermission(audioStatus === 'granted');
 
       if (audioStatus !== 'granted') {
         Alert.alert(
-          'Permission needed', 
-          'Microphone permission is required for calls'
+          'Permission needed',
+          'Microphone permission is required for video calls'
         );
         navigation.goBack();
+      } else {
+        await setupAudio();
       }
     } catch (error) {
-      console.error('Error requesting permissions:', error);
+      console.error('Error requesting audio permission:', error);
     }
+  };
+
+  const toggleCameraFacing = () => {
+    setFacing(current => (current === 'front' ? 'back' : 'front'));
   };
 
   const setupCall = async () => {
     socket.current = io('http://your-server-url:4000', {
       transports: ['websocket'],
-      path: '/socket.io'
+      path: '/socket.io',
     });
 
     const userId = await SecureStore.getItemAsync('user_id');
@@ -79,32 +111,19 @@ const VideoCallScreen = ({ route, navigation }) => {
       navigation.goBack();
     });
 
-    socket.current.on('peerDisconnected', () => {
-      Alert.alert('Call Ended', 'The other user disconnected');
-      navigation.goBack();
-    });
-
     socket.current.emit('initiateCall', {
       callerId: userId,
       receiverId: participantId,
-      chatId
+      chatId,
     });
   };
 
-  const toggleMute = async () => {
+  const toggleMute = () => {
     setIsMuted(!isMuted);
-    socket.current.emit('muteStatus', {
-      roomId: chatId,
-      isMuted: !isMuted
-    });
   };
 
   const toggleVideo = () => {
     setIsVideoEnabled(!isVideoEnabled);
-    socket.current.emit('videoStatus', {
-      roomId: chatId,
-      isVideoEnabled: !isVideoEnabled
-    });
   };
 
   const endCall = () => {
@@ -112,14 +131,52 @@ const VideoCallScreen = ({ route, navigation }) => {
     navigation.goBack();
   };
 
+  if (!permission) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.waitingText}>Loading camera permissions...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.waitingText}>Camera permission is required</Text>
+        <TouchableOpacity 
+          style={styles.permissionButton} 
+          onPress={requestPermission}
+        >
+          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Main Video Area */}
       <View style={styles.mainVideoArea}>
-        <Text style={styles.waitingText}>Waiting for other participant...</Text>
+        {isVideoEnabled ? (
+          <CameraView
+            style={styles.camera}
+            facing={facing}
+            enableZoomGesture
+          >
+            <TouchableOpacity
+              style={styles.flipButton}
+              onPress={toggleCameraFacing}
+            >
+              <Feather name="refresh-cw" size={20} color="#FFF" />
+            </TouchableOpacity>
+          </CameraView>
+        ) : (
+          <View style={styles.videoDisabledContainer}>
+            <Feather name="video-off" size={40} color="#FFF" />
+            <Text style={styles.videoDisabledText}>Camera is off</Text>
+          </View>
+        )}
       </View>
 
-      {/* Call Status */}
       <View style={styles.statusContainer}>
         <Text style={styles.statusText}>
           {callStatus === 'connecting' ? 'Connecting...' : 
@@ -127,7 +184,6 @@ const VideoCallScreen = ({ route, navigation }) => {
         </Text>
       </View>
 
-      {/* Control Buttons */}
       <View style={styles.controls}>
         <TouchableOpacity
           style={[styles.controlButton, isMuted && styles.controlButtonActive]}
@@ -169,13 +225,40 @@ const styles = StyleSheet.create({
   },
   mainVideoArea: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#2a2a2a',
+  },
+  camera: {
+    flex: 1,
   },
   waitingText: {
     color: '#FFF',
     fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  permissionButton: {
+    backgroundColor: '#4a90e2',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 20,
+    marginHorizontal: 40,
+  },
+  permissionButtonText: {
+    color: '#FFF',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  videoDisabledContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#2a2a2a',
+  },
+  videoDisabledText: {
+    color: '#FFF',
+    fontSize: 16,
+    marginTop: 10,
   },
   statusContainer: {
     position: 'absolute',
@@ -215,4 +298,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VideoCallScreen; 
+export default VideoCallScreen;
