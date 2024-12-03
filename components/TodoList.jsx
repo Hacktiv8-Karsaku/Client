@@ -6,10 +6,14 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
 import { gql, useMutation, useQuery } from '@apollo/client';
 import * as Calendar from 'expo-calendar';
 import * as Animatable from 'react-native-animatable';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { GET_RECOMMENDATIONS, REGENERATE_TODOS } from '../graphql/queries';
 
 const GET_SAVED_TODOS = gql`
@@ -47,30 +51,23 @@ const TodoList = ({ todoList, visible, onClose }) => {
 
   const handleSaveTodo = async (todo) => {
     try {
-      const { data } = await saveTodo({
+      await saveTodo({
         variables: { todoItem: todo },
         refetchQueries: [{ query: GET_SAVED_TODOS }],
       });
 
-      // Request Calendar permissions
       const calendarStatus = await Calendar.requestCalendarPermissionsAsync();
       if (calendarStatus.status === 'granted') {
-        // Get all calendars
         const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-        
-        // Find the first calendar that allows modifications
         const defaultCalendar = calendars.find(cal => cal.allowsModifications);
         
         if (defaultCalendar) {
-          const event = await Calendar.createEventAsync(defaultCalendar.id, {
+          await Calendar.createEventAsync(defaultCalendar.id, {
             title: todo,
             startDate: new Date(),
             endDate: new Date(new Date().getTime() + 30 * 60 * 1000),
             timeZone: 'GMT',
           });
-          console.log(`Event created with ID: ${event}`);
-        } else {
-          console.log('No writable calendar found');
         }
       }
     } catch (error) {
@@ -80,26 +77,40 @@ const TodoList = ({ todoList, visible, onClose }) => {
 
   const renderTodoItem = (todo, index) => {
     const isSaved = savedTodos.includes(todo);
+    const animations = ['fadeInLeft', 'fadeInRight'];
+    const animation = animations[index % 2];
 
     return (
       <Animatable.View
-        animation="fadeInUp"
+        animation={animation}
         delay={index * 100}
-        style={styles.card}
+        style={styles.cardContainer}
         key={index}
       >
-        <Text style={styles.todoText}>{todo}</Text>
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            { backgroundColor: isSaved ? '#BDE0FE' : '#FF9A8A' },
-          ]}
-          onPress={() => handleSaveTodo(todo)}
+        <LinearGradient
+          colors={isSaved ? ['#BDE0FE', '#A2D2FF'] : ['#FFB5A7', '#FF9A8A']}
+          style={styles.card}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
         >
-          <Text style={styles.saveButtonText}>
-            {isSaved ? 'Saved' : 'Save'}
-          </Text>
-        </TouchableOpacity>
+          <View style={styles.todoContent}>
+            <Feather 
+              name={isSaved ? "check-circle" : "circle"} 
+              size={24} 
+              color="#FFF" 
+              style={styles.icon}
+            />
+            <Text style={styles.todoText}>{todo}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={() => handleSaveTodo(todo)}
+          >
+            <Text style={styles.saveButtonText}>
+              {isSaved ? 'Saved' : 'Save'}
+            </Text>
+          </TouchableOpacity>
+        </LinearGradient>
       </Animatable.View>
     );
   };
@@ -107,21 +118,28 @@ const TodoList = ({ todoList, visible, onClose }) => {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
-        <Text style={styles.title}>Your To-Do List</Text>
-        <View style={styles.listContainer}>
+        <Animatable.Text animation="fadeInDown" style={styles.title}>
+          Your Healing Journey
+        </Animatable.Text>
+        <ScrollView 
+          style={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        >
           {todoList?.map((todo, index) => renderTodoItem(todo, index))}
-        </View>
+        </ScrollView>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
             style={styles.regenerateButton}
             onPress={handleRegenerateTodos}
             disabled={regenerating}
           >
+            <Feather name="refresh-cw" size={20} color="#FFF" style={styles.buttonIcon} />
             <Text style={styles.regenerateButtonText}>
               {regenerating ? 'Regenerating...' : 'Regenerate'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Feather name="x" size={20} color="#FFF" style={styles.buttonIcon} />
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
         </View>
@@ -133,40 +151,52 @@ const TodoList = ({ todoList, visible, onClose }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
-    padding: 16,
+    backgroundColor: '#FFF5F3',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginVertical: 20,
     textAlign: 'center',
-    color: '#333',
+    color: '#FF9A8A',
+    paddingHorizontal: 20,
   },
   listContainer: {
     flex: 1,
-    marginTop: 8,
+    paddingHorizontal: 16,
+  },
+  cardContainer: {
+    marginBottom: 12,
+    borderRadius: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   card: {
-    backgroundColor: '#FFF9F5',
     borderRadius: 16,
     padding: 16,
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
+  },
+  todoContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  icon: {
+    marginRight: 12,
   },
   todoText: {
+    flex: 1,
     fontSize: 16,
-    color: '#333',
-    marginBottom: 8,
+    color: '#FFF',
+    fontWeight: '500',
   },
   saveButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 20,
     alignSelf: 'flex-start',
   },
   saveButtonText: {
@@ -174,32 +204,35 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   buttonContainer: {
-    alignItems: 'center',
-    paddingVertical: 16,
+    padding: 16,
+    paddingBottom: 32,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: 'rgba(255, 154, 138, 0.2)',
   },
   regenerateButton: {
     backgroundColor: '#BDE0FE',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginBottom: 12,
-    width: '80%',
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginBottom: 12,
+  },
+  closeButton: {
+    backgroundColor: '#FF9A8A',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   regenerateButtonText: {
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 16,
-  },
-  closeButton: {
-    backgroundColor: '#FF9A8A',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    width: '80%',
-    alignItems: 'center',
   },
   closeButtonText: {
     color: '#FFF',
