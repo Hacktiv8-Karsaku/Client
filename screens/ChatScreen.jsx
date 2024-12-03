@@ -58,55 +58,65 @@ const SEND_MESSAGE = gql`
   }
 `;
 
+const END_CHAT = gql`
+  mutation EndChat($chatId: ID!) {
+    endChat(chatId: $chatId) {
+      _id
+      isEnded
+      endedAt
+    }
+  }
+`;
+
 const formatMessageTime = (timestamp) => {
   if (!timestamp) return '';
-  
+
   try {
     const messageDate = new Date(parseInt(timestamp));
     const now = new Date();
-    
+
     // Check if date is invalid
     if (isNaN(messageDate.getTime())) {
       return '';
     }
-    
+
     // Same day - show time only
     if (messageDate.toDateString() === now.toDateString()) {
-      return messageDate.toLocaleTimeString([], { 
-        hour: '2-digit', 
+      return messageDate.toLocaleTimeString([], {
+        hour: '2-digit',
         minute: '2-digit'
       });
     }
-    
+
     // Yesterday
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     if (messageDate.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday ' + messageDate.toLocaleTimeString([], { 
-        hour: '2-digit', 
+      return 'Yesterday ' + messageDate.toLocaleTimeString([], {
+        hour: '2-digit',
         minute: '2-digit'
       });
     }
-    
+
     // Within last 7 days - show day name
     const oneWeekAgo = new Date(now);
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     if (messageDate > oneWeekAgo) {
-      return messageDate.toLocaleDateString([], { 
+      return messageDate.toLocaleDateString([], {
         weekday: 'short'
-      }) + ' ' + messageDate.toLocaleTimeString([], { 
-        hour: '2-digit', 
+      }) + ' ' + messageDate.toLocaleTimeString([], {
+        hour: '2-digit',
         minute: '2-digit'
       });
     }
-    
+
     // Older messages - show full date
-    return messageDate.toLocaleDateString([], { 
+    return messageDate.toLocaleDateString([], {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
-    }) + ' ' + messageDate.toLocaleTimeString([], { 
-      hour: '2-digit', 
+    }) + ' ' + messageDate.toLocaleTimeString([], {
+      hour: '2-digit',
       minute: '2-digit'
     });
   } catch (error) {
@@ -127,7 +137,15 @@ const ChatScreen = ({ route, navigation }) => {
       if (data?.getChat) {
         const professionalParticipant = data.getChat.participants.find(p => p.role === 'professional');
         navigation.setOptions({
-          title: professionalParticipant?.name || 'Chat'
+          title: professionalParticipant?.name || 'Chat',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleEndChat}
+              style={styles.headerButton}
+            >
+              <Text style={styles.headerButtonText}>End Chat</Text>
+            </TouchableOpacity>
+          ),
         });
       }
     }
@@ -136,6 +154,12 @@ const ChatScreen = ({ route, navigation }) => {
   const [sendMessage] = useMutation(SEND_MESSAGE, {
     onCompleted: () => {
       refetch(); // Refetch chat data after sending a message
+    }
+  });
+
+  const [endChat] = useMutation(END_CHAT, {
+    onCompleted: () => {
+      refetch();
     }
   });
 
@@ -154,10 +178,42 @@ const ChatScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleEndChat = async () => {
+    Alert.alert(
+      'End Chat',
+      'Are you sure you want to end this chat?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'End Chat',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await endChat({ variables: { chatId } });
+              Alert.alert(
+                'Chat Ended',
+                'Chat has ended successfully',
+                [
+                  {
+                    text: 'View History',
+                    onPress: () => navigation.navigate('UserChatHistory')
+                  }
+                ]
+              );
+            } catch (error) {
+              console.error('Error ending chat:', error);
+              Alert.alert('Error', 'Failed to end chat');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderMessage = ({ item }) => {
     const isSender = item.senderDetails?.role === 'user';
     const formattedTime = formatMessageTime(item.timestamp);
-    
+
     return (
       <View style={[
         styles.messageContainer,
@@ -185,8 +241,8 @@ const ChatScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        style={styles.container} 
+      <KeyboardAvoidingView
+        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <FlatList
@@ -196,21 +252,36 @@ const ChatScreen = ({ route, navigation }) => {
           keyExtractor={item => item._id}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
         />
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={message}
-            onChangeText={setMessage}
-            placeholder="Type a message..."
-          />
-          <TouchableOpacity 
-            style={styles.sendButton} 
-            onPress={handleSend}
-            disabled={!message.trim()}
-          >
-            <Feather name="send" size={24} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        {data?.getChat?.isEnded === true ? (
+          <View style={styles.endedMessageContainer}>
+            <Text style={styles.endedMessageText}>
+              This chat has ended
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={message}
+              onChangeText={setMessage}
+              placeholder="Type a message..."
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                !message.trim() && styles.sendButtonDisabled
+              ]}
+              onPress={handleSend}
+              disabled={!message.trim()}
+            >
+              <Feather
+                name="send"
+                size={24}
+                color={message.trim() ? "#FFF" : "rgba(255, 255, 255, 0.5)"}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -235,6 +306,14 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     padding: 12,
     borderRadius: 12,
+  },
+  headerButton: {
+    marginRight: 10,
+  },
+  headerButtonText: {
+    color: '#FF4444',
+    fontSize: 16,
+    fontWeight: '600',
   },
   senderMessage: {
     alignSelf: 'flex-end',
@@ -297,11 +376,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#FFB5A8', // Lighter shade
+    opacity: 0.7,
   },
   errorText: {
     color: '#F44336',
     fontSize: 16,
+  },
+  endedBanner: {
+    backgroundColor: '#FFE5E5',
+    padding: 10,
+    alignItems: 'center',
+  },
+  endedText: {
+    color: '#FF4444',
+    fontWeight: 'bold',
+  },
+  endedTime: {
+    color: '#666',
+    fontSize: 12,
+  },
+  endChatButton: {
+    backgroundColor: '#FF4444',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    margin: 10,
+  },
+  endChatText: {
+    color: '#FF4444',
+    fontWeight: 'bold',
+  },
+  endedMessageContainer: {
+    padding: 16,
+    backgroundColor: '#FFE5E5',
+    borderTopWidth: 1,
+    borderTopColor: '#EEE',
+    alignItems: 'center',
+  },
+  endedMessageText: {
+    color: '#FF4444',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

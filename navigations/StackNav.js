@@ -9,36 +9,27 @@ import ProfessionalScreen from "../screens/ProfessionalScreen";
 import ChatScreen from "../screens/ChatScreen";
 import ProfessionalDashboard from "../screens/ProfessionalDashboard";
 import LoginProfessional from "../screens/LoginProfessional";
+import ProfessionalChat from "../screens/ProfessionalChat";
+import UserChatHistory from "../screens/userChatHistory";
+import * as SecureStore from 'expo-secure-store';
 import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
-import ProfessionalChat from "../screens/ProfessionalChat";
-import * as SecureStore from 'expo-secure-store';
 
 const Stack = createNativeStackNavigator();
 
 export default function RootStack() {
-  const { isSignedIn } = useContext(AuthContext);
-  const [userRole, setUserRole] = useState(null);
-
-  // Check role when component mounts
-  useEffect(() => {
-    const checkRole = async () => {
-      const role = await SecureStore.getItemAsync('role');
-      setUserRole(role);
-    };
-    checkRole();
-  }, [isSignedIn]);
+  const { isSignedIn, userRole } = useContext(AuthContext);
 
   return (
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
-            backgroundColor: "white",
+            backgroundColor: '#fff',
           },
-          headerTintColor: "#4267B2",
+          headerTintColor: '#FF9A8A',
           headerTitleStyle: {
-            fontWeight: "bold",
+            fontWeight: 'bold',
           },
         }}
       >
@@ -89,6 +80,14 @@ export default function RootStack() {
                 component={ChatScreen}
                 options={{ title: "Chat" }}
               />
+              <Stack.Screen
+                name="UserChatHistory"
+                component={UserChatHistory}
+                options={{
+                  title: 'Chat History',
+                  headerTitleAlign: 'center',
+                }}
+              />
             </>
           )
         ) : (
@@ -111,6 +110,7 @@ export default function RootStack() {
             />
           </>
         )}
+
       </Stack.Navigator>
     </NavigationContainer>
   );

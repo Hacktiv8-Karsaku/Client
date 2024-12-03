@@ -19,6 +19,7 @@ const GET_CHAT = gql`
   query GetChat($chatId: ID!) {
     getChat(chatId: $chatId) {
       _id
+      isEnded
       messages {
         _id
         content
@@ -54,6 +55,16 @@ const SEND_MESSAGE_PROFESSIONAL = gql`
           role
         }
       }
+    }
+  }
+`;
+
+const END_CHAT = gql`
+  mutation EndChat($chatId: ID!) {
+    endChat(chatId: $chatId) {
+      _id
+      isEnded
+      endedAt
     }
   }
 `;
@@ -153,15 +164,31 @@ const ProfessionalChatScreen = ({ route, navigation }) => {
       if (data?.getChat) {
         const userParticipant = data.getChat.participants.find(p => p.role === 'user');
         navigation.setOptions({
-          title: userParticipant?.name || 'Chat'
+          title: userParticipant?.name || 'Chat',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleEndChat}
+              style={styles.headerButton}
+            >
+              <Text style={styles.headerButtonText}>End Chat</Text>
+            </TouchableOpacity>
+          ),
         });
       }
     }
   });
 
+  const isChatEnded = data?.getChat?.isEnded ?? false; // Default to false if null
+
   const [sendMessageProfessional] = useMutation(SEND_MESSAGE_PROFESSIONAL, {
     onCompleted: () => {
       refetch(); // Refetch chat data after sending a message
+    }
+  });
+
+  const [endChat] = useMutation(END_CHAT, {
+    onCompleted: () => {
+      refetch();
     }
   });
 
@@ -178,6 +205,29 @@ const ProfessionalChatScreen = ({ route, navigation }) => {
       console.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to send message');
     }
+  };
+
+  const handleEndChat = async () => {
+    Alert.alert(
+      'End Chat',
+      'Are you sure you want to end this chat?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'End Chat',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await endChat({ variables: { chatId } });
+              Alert.alert('Chat ended successfully');
+            } catch (error) {
+              console.error('Error ending chat:', error);
+              Alert.alert('Error', 'Failed to end chat');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderMessage = ({ item }) => {
@@ -211,8 +261,8 @@ const ProfessionalChatScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        style={styles.container} 
+      <KeyboardAvoidingView
+        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <FlatList
@@ -222,21 +272,36 @@ const ProfessionalChatScreen = ({ route, navigation }) => {
           keyExtractor={item => item._id}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
         />
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={message}
-            onChangeText={setMessage}
-            placeholder="Type a message..."
-          />
-          <TouchableOpacity 
-            style={styles.sendButton} 
-            onPress={handleSend}
-            disabled={!message.trim()}
-          >
-            <Feather name="send" size={24} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        {data?.getChat?.isEnded === true ? (
+          <View style={styles.endedMessageContainer}>
+            <Text style={styles.endedMessageText}>
+              This chat has ended
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={message}
+              onChangeText={setMessage}
+              placeholder="Type a message..."
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                !message.trim() && styles.sendButtonDisabled
+              ]}
+              onPress={handleSend}
+              disabled={!message.trim()}
+            >
+              <Feather
+                name="send"
+                size={24}
+                color={message.trim() ? "#FFF" : "rgba(255, 255, 255, 0.5)"}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -331,7 +396,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#FFB5A8', // Lighter shade
+    opacity: 0.7,
   },
   errorText: {
     color: 'red',
@@ -348,6 +414,52 @@ const styles = StyleSheet.create({
   retryText: {
     color: '#fff',
     fontSize: 16,
+  },
+  endedBanner: {
+    backgroundColor: '#FFE5E5',
+    padding: 10,
+    alignItems: 'center',
+  },
+  endedText: {
+    color: '#FF4444',
+    fontWeight: 'bold',
+  },
+  endedTime: {
+    color: '#666',
+    fontSize: 12,
+  },
+  headerButton: {
+    marginRight: 10,
+  },
+  headerButtonText: {
+    color: '#FF4444',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  endedMessageBox: {
+    flex: 1,
+    backgroundColor: '#FFE5E5',
+    padding: 15,
+    borderRadius: 20,
+    justifyContent: 'center',
+  },
+  endedMessageText: {
+    color: '#FF4444',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  endedMessageContainer: {
+    padding: 16,
+    backgroundColor: '#FFE5E5',
+    borderTopWidth: 1,
+    borderTopColor: '#EEE',
+    alignItems: 'center',
+  },
+  endedMessageText: {
+    color: '#FF4444',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
