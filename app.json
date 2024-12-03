@@ -50,6 +50,18 @@
           "calendarPermission": "Allow $(PRODUCT_NAME) to access your calendar",
           "remindersPermission": "Allow $(PRODUCT_NAME) to access your reminders"
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera for video calls."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for video calls."
+        }
       ]
     ]
   }

@@ -46,7 +46,7 @@ export const CREATE_CHAT = gql`
   }
 `;
 
-const ProfessionalCard = ({ professional, onChatPress }) => (
+const ProfessionalCard = ({ professional, onChatPress, onVideoPress }) => (
     <View style={styles.card}>
         <Image
             source={{ uri: professional.imageUrl }}
@@ -68,17 +68,30 @@ const ProfessionalCard = ({ professional, onChatPress }) => (
                 ]}>
                     {professional.isAvailable ? 'Available' : 'Unavailable'}
                 </Text>
-                <TouchableOpacity
-                    style={[
-                        styles.chatButton,
-                        { opacity: professional.isAvailable ? 1 : 0.5 }
-                    ]}
-                    onPress={() => onChatPress(professional)}
-                    disabled={!professional.isAvailable}
-                >
-                    <Feather name="message-circle" size={20} color="#FFF" />
-                    <Text style={styles.chatButtonText}>Chat</Text>
-                </TouchableOpacity>
+                <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                        style={[
+                            styles.actionButton,
+                            styles.videoButton,
+                            { opacity: professional.isAvailable ? 1 : 0.5 }
+                        ]}
+                        onPress={() => onVideoPress(professional)}
+                        disabled={!professional.isAvailable}
+                    >
+                        <Feather name="video" size={20} color="#FFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[
+                            styles.actionButton,
+                            styles.chatButton,
+                            { opacity: professional.isAvailable ? 1 : 0.5 }
+                        ]}
+                        onPress={() => onChatPress(professional)}
+                        disabled={!professional.isAvailable}
+                    >
+                        <Feather name="message-circle" size={20} color="#FFF" />
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     </View>
@@ -114,6 +127,30 @@ const ProfessionalScreen = () => {
         }
     };
 
+    const handleVideoPress = async (professional) => {
+        try {
+            const { data } = await createChat({
+                variables: { professionalId: professional._id }
+            });
+            
+            if (data?.createChat?._id) {
+                navigation.navigate('VideoCall', {
+                    chatId: data.createChat._id,
+                    participantId: professional._id
+                });
+            } else {
+                throw new Error('Failed to create chat');
+            }
+        } catch (error) {
+            console.error('Error starting video call:', error);
+            Alert.alert(
+                'Error',
+                'Unable to start video call. Please try again.',
+                [{ text: 'OK' }]
+            );
+        }
+    };
+
     const filteredProfessionals = data?.getAllProfessionals.filter(prof =>
         prof.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         prof.specialization.toLowerCase().includes(searchQuery.toLowerCase())
@@ -142,6 +179,7 @@ const ProfessionalScreen = () => {
                         <ProfessionalCard
                             professional={item}
                             onChatPress={handleChatPress}
+                            onVideoPress={handleVideoPress}
                         />
                     )}
                     keyExtractor={item => item._id}
@@ -233,18 +271,22 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
     },
-    chatButton: {
+    buttonContainer: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    actionButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FF9A8A',
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
     },
-    chatButtonText: {
-        color: '#FFF',
-        marginLeft: 4,
-        fontWeight: '500',
+    videoButton: {
+        backgroundColor: '#4CAF50',
+    },
+    chatButton: {
+        backgroundColor: '#FF9A8A',
     },
     errorText: {
         textAlign: 'center',

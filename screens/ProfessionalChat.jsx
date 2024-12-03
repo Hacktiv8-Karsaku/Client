@@ -159,7 +159,7 @@ const ProfessionalChatScreen = ({ route, navigation }) => {
 
   const { loading, data, refetch } = useQuery(GET_CHAT, {
     variables: { chatId },
-    pollInterval: 200,
+    pollInterval: 1000,
     onCompleted: (data) => {
       if (data?.getChat) {
         const userParticipant = data.getChat.participants.find(p => p.role === 'user');

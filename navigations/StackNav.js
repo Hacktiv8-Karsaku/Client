@@ -14,6 +14,7 @@ import UserChatHistory from "../screens/userChatHistory";
 import * as SecureStore from 'expo-secure-store';
 import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
+import VideoCallScreen from "../screens/VideoCallScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -47,6 +48,14 @@ export default function RootStack() {
                 name="ProfessionalChat"
                 component={ProfessionalChat}
                 options={{ title: "Chats" }}
+              />
+              <Stack.Screen
+                name="VideoCall"
+                component={VideoCallScreen}
+                options={{ 
+                  headerShown: false,
+                  presentation: 'fullScreenModal'
+                }}
               />
             </>
           ) : (
@@ -86,6 +95,14 @@ export default function RootStack() {
                 options={{
                   title: 'Chat History',
                   headerTitleAlign: 'center',
+                }}
+              />
+              <Stack.Screen
+                name="VideoCall"
+                component={VideoCallScreen}
+                options={{ 
+                  headerShown: false,
+                  presentation: 'fullScreenModal'
                 }}
               />
             </>

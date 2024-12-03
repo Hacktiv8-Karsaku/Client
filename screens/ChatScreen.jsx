@@ -132,7 +132,7 @@ const ChatScreen = ({ route, navigation }) => {
 
   const { loading, data, refetch } = useQuery(GET_CHAT, {
     variables: { chatId },
-    pollInterval: 200,
+    pollInterval: 1000,
     onCompleted: (data) => {
       if (data?.getChat) {
         const professionalParticipant = data.getChat.participants.find(p => p.role === 'professional');
@@ -210,6 +210,13 @@ const ChatScreen = ({ route, navigation }) => {
     );
   };
 
+  const handleVideoCall = () => {
+    navigation.navigate('VideoCall', { 
+      chatId: route.params.chatId,
+      participantId: data?.getChat?.participants.find(p => p.role !== 'user')?._id
+    });
+  };
+
   const renderMessage = ({ item }) => {
     const isSender = item.senderDetails?.role === 'user';
     const formattedTime = formatMessageTime(item.timestamp);
@@ -245,6 +252,14 @@ const ChatScreen = ({ route, navigation }) => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <TouchableOpacity
+          style={styles.videoCallButton}
+          onPress={handleVideoCall}
+        >
+          <Feather name="video" size={20} color="#FFF" style={{ marginRight: 8 }} />
+          <Text style={styles.videoCallButtonText}>Start Video Call</Text>
+        </TouchableOpacity>
+
         <FlatList
           ref={flatListRef}
           data={data?.getChat?.messages || []}
@@ -417,6 +432,17 @@ const styles = StyleSheet.create({
   endedMessageText: {
     color: '#FF4444',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  videoCallButton: {
+    backgroundColor: '#FF9A8A',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    margin: 10,
+  },
+  videoCallButtonText: {
+    color: '#FFF',
     fontWeight: 'bold',
   },
 });

@@ -45,7 +45,7 @@ export default function ProfessionalDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   
   const { loading, error, data, refetch } = useQuery(GET_PROFESSIONAL_CHATS, {
-    pollInterval: 200, // Auto-fetch every 200 milliseconds
+    pollInterval: 1000, // Auto-fetch every 200 milliseconds
   });
 
   const handleRefresh = async () => {
