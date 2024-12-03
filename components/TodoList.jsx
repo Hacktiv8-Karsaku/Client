@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { gql, useMutation, useQuery } from '@apollo/client';
 import * as Calendar from 'expo-calendar';
@@ -35,6 +36,8 @@ const TodoList = ({ todoList, visible, onClose }) => {
   const { data: savedTodosData } = useQuery(GET_SAVED_TODOS);
   const [saveTodo] = useMutation(SAVE_TODO);
   const [regenerateTodos, { loading: regenerating }] = useMutation(REGENERATE_TODOS);
+  const [loadingTodo, setLoadingTodo] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const savedTodos = savedTodosData?.getSavedTodos || [];
 
@@ -50,6 +53,8 @@ const TodoList = ({ todoList, visible, onClose }) => {
   };
 
   const handleSaveTodo = async (todo) => {
+    setLoadingTodo(todo);
+    setShowSuccess(false);
     try {
       await saveTodo({
         variables: { todoItem: todo },
@@ -70,13 +75,21 @@ const TodoList = ({ todoList, visible, onClose }) => {
           });
         }
       }
+      
+      setShowSuccess(true);
+      setTimeout(() => {
+        setLoadingTodo(null);
+        setShowSuccess(false);
+      }, 1500);
     } catch (error) {
       Alert.alert('Error saving todo', error.message);
+      setLoadingTodo(null);
     }
   };
 
   const renderTodoItem = (todo, index) => {
     const isSaved = savedTodos.includes(todo);
+    const isLoading = loadingTodo === todo;
     const animations = ['fadeInLeft', 'fadeInRight'];
     const animation = animations[index % 2];
 
@@ -87,30 +100,50 @@ const TodoList = ({ todoList, visible, onClose }) => {
         style={styles.cardContainer}
         key={index}
       >
-        <LinearGradient
-          colors={isSaved ? ['#BDE0FE', '#A2D2FF'] : ['#FFB5A7', '#FF9A8A']}
-          style={styles.card}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+        <Animatable.View
+          animation={isSaved ? 'pulse' : undefined}
+          duration={1000}
+          style={styles.animationWrapper}
         >
-          <View style={styles.todoContent}>
-            <Feather 
-              name={isSaved ? "check-circle" : "circle"} 
-              size={24} 
-              color="#FFF" 
-              style={styles.icon}
-            />
-            <Text style={styles.todoText}>{todo}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={() => handleSaveTodo(todo)}
+          <LinearGradient
+            colors={isSaved ? ['#FFF5F3', '#FFF5F3'] : ['#FFB5A7', '#FF9A8A']}
+            style={[styles.card, isSaved && styles.savedCard]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
           >
-            <Text style={styles.saveButtonText}>
-              {isSaved ? 'Saved' : 'Save'}
-            </Text>
-          </TouchableOpacity>
-        </LinearGradient>
+            {isLoading && (
+              <View style={styles.loadingOverlay}>
+                <Animatable.View animation={showSuccess ? 'bounceIn' : undefined}>
+                  {showSuccess ? (
+                    <Feather name="check-circle" size={40} color="#FF9A8A" />
+                  ) : (
+                    <ActivityIndicator size="large" color="#FF9A8A" />
+                  )}
+                </Animatable.View>
+              </View>
+            )}
+            <View style={styles.todoContent}>
+              <Feather 
+                name={isSaved ? "check-circle" : "circle"} 
+                size={24} 
+                color={isSaved ? "#FF9A8A" : "#FFF"} 
+                style={styles.icon}
+              />
+              <Text style={[styles.todoText, isSaved && styles.savedTodoText]}>
+                {todo}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.saveButton, isSaved && styles.savedButton]}
+              onPress={() => handleSaveTodo(todo)}
+              disabled={isLoading}
+            >
+              <Text style={[styles.saveButtonText, isSaved && styles.savedButtonText]}>
+                {isSaved ? 'Saved' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        </Animatable.View>
       </Animatable.View>
     );
   };
@@ -129,11 +162,16 @@ const TodoList = ({ todoList, visible, onClose }) => {
         </ScrollView>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
-            style={styles.regenerateButton}
+            style={[styles.regenerateButton, regenerating && styles.regeneratingButton]}
             onPress={handleRegenerateTodos}
             disabled={regenerating}
           >
-            <Feather name="refresh-cw" size={20} color="#FFF" style={styles.buttonIcon} />
+            <Feather 
+              name="refresh-cw" 
+              size={20} 
+              color="#FF9A8A" 
+              style={styles.buttonIcon} 
+            />
             <Text style={styles.regenerateButtonText}>
               {regenerating ? 'Regenerating...' : 'Regenerate'}
             </Text>
@@ -210,13 +248,15 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255, 154, 138, 0.2)',
   },
   regenerateButton: {
-    backgroundColor: '#BDE0FE',
+    backgroundColor: '#FFF5F3',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 25,
     marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#FF9A8A',
   },
   closeButton: {
     backgroundColor: '#FF9A8A',
@@ -230,7 +270,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   regenerateButtonText: {
-    color: '#FFF',
+    color: '#FF9A8A',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -238,6 +278,40 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  savedCard: {
+    borderWidth: 2,
+    borderColor: '#FF9A8A',
+  },
+  savedTodoText: {
+    color: '#FF9A8A',
+  },
+  savedButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#FF9A8A',
+  },
+  savedButtonText: {
+    color: '#FF9A8A',
+  },
+  regeneratingButton: {
+    opacity: 0.7,
+  },
+  animationWrapper: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+    zIndex: 1,
   },
 });
 
