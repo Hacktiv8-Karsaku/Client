@@ -21,13 +21,13 @@ import VideoRecommendations from "../components/VideoRecommendations";
 
 const HomePage = () => {
   const navigation = useNavigation();
-  const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
+  const { loading, error, data, refetch } = useQuery(GET_RECOMMENDATIONS);
   const { todoList, places, foodVideos } =
     data?.getUserProfile?.recommendations || {};
   const [todoListVisible, setTodoListVisible] = useState(false);
 
-  console.log("Places data in MapView:", places);
-  console.log("First place coordinates:", places?.[0]?.coordinates);
+  // console.log("Places data in MapView:", places);
+  // console.log("First place coordinates:", places?.[0]?.coordinates);
 
   const renderPlaceCard = ({ item }) => (
     <DetailDestination
@@ -41,7 +41,7 @@ const HomePage = () => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={{ flex: 1 }}>
-        <ScrollView 
+        <ScrollView
           style={styles.container}
           showsVerticalScrollIndicator={false}
         >
@@ -51,6 +51,14 @@ const HomePage = () => {
               <View style={styles.circle} />
             </TouchableOpacity>
           </View>
+
+          {/* Refresh Button */}
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={refetch}
+          >
+            <Text style={styles.refreshButtonText}>Refresh Home</Text>
+          </TouchableOpacity>
 
           {/* Places Section with Map */}
           <View style={styles.section}>
@@ -66,8 +74,8 @@ const HomePage = () => {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Preview To Do List</Text>
-              <TouchableOpacity 
-                onPress={() => navigation.navigate("Questions")}
+              <TouchableOpacity
+                onPress={() => navigation.navigate("QuestionsRetake")}
                 style={styles.retakeButton}
               >
                 <Text style={styles.retakeButtonText}>Retake Questions</Text>
@@ -105,8 +113,8 @@ const HomePage = () => {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.horizontalScrollContainer}
                 />
-                <TouchableOpacity 
-                  onPress={() => navigation.navigate("Destination")} 
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("Destination")}
                   style={styles.seeAll}
                 >
                   <Text style={styles.seeAll}>See All</Text>

@@ -1,37 +1,101 @@
-import React from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import * as Location from "expo-location";
+import { GOOGLE_MAPS_API_KEY } from "@env";
 import DetailDestination from "../components/DetailDestination";
 
 const Destination = () => {
-  const dummyData = [
-    {
-      id: "1",
-      name: "Beach Paradise",
-      rating: 4.8,
-      description: "A beautiful beach with clear blue water.",
-      image: "https://vietnam.travel/sites/default/files/inline-images/shutterstock_585187837.jpg",
-    },
-    {
-      id: "2",
-      name: "Mountain Retreat",
-      rating: 4.6,
-      description: "A peaceful retreat in the mountains.",
-      image: "https://cdn.britannica.com/72/11472-050-B9734C89/Bear-Hat-Mountain-Hidden-Lake-Montana-Glacier.jpg",
-    },
-    {
-      id: "3",
-      name: "Forest Adventure",
-      rating: 4.7,
-      description: "An exciting adventure in the forest.",
-      image: "https://resilience-blog.com/wp-content/uploads/2022/06/cover-HD-scaled.jpg",
-    },
-  ];
+  const [places, setPlaces] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [location, setLocation] = useState(null);
+
+  useEffect(() => {
+    // Request location permission
+    const getLocationPermission = async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setError("Permission to access location was denied.");
+        setLoading(false);
+        return;
+      }
+
+      // Start watching the user's location with distance interval of 100 meters
+      const locationSubscription = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, distanceInterval: 100 }, // Update location every 100 meters
+        (newLocation) => {
+          setLocation(newLocation.coords);
+        }
+      );
+
+      return locationSubscription;
+    };
+
+    getLocationPermission();
+
+    // Cleanup function to stop watching location when the component unmounts
+    
+  }, []);
+
+  useEffect(() => {
+    // Fetch places when the location changes
+    if (location) {
+      const fetchPlacesAround = async () => {
+        setLoading(true);
+        try {
+          const { latitude, longitude } = location;
+          const response = await fetch(
+            `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=1500&type=tourist_attraction&key=${GOOGLE_MAPS_API_KEY}`
+          );
+          const data = await response.json();
+
+          if (data.results) {
+            // Map the API response to fit the DetailDestination component
+            const formattedPlaces = data.results.map((place) => ({
+              id: place.place_id,
+              name: place.name,
+              rating: place.rating || "Not available",
+              description: place.vicinity || "No description available",
+              placeId: place.place_id, // To fetch details and photos
+            }));
+            setPlaces(formattedPlaces);
+          } else {
+            setError("No places found.");
+          }
+        } catch (err) {
+          setError("Failed to fetch places.");
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchPlacesAround();
+    }
+  }, [location]); // Refetch when the location changes
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Loading destinations...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Recommended Destinations</Text>
+      <Text style={styles.title}>Recommended Destinations Nearby</Text>
       <FlatList
-        data={dummyData}
+        data={places}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DetailDestination place={item} />}
         contentContainerStyle={styles.listContent}
@@ -55,6 +119,20 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 16,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 16,
   },
 });
 

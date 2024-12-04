@@ -16,28 +16,29 @@ export const DELETE_TODO = gql`
 `;
 
 export const GET_RECOMMENDATIONS = gql`
-  query GetRecommendations {
-    getUserProfile {
-      recommendations {
-        todoList
-        places {
-          name
-          description
-          address
-          coordinates {
-            lat
-            lng
-          }
+  query GetUserProfile($getUserProfileId: ID) {
+  getUserProfile(id: $getUserProfileId) {
+    recommendations {
+      todoList
+      places {
+        name
+        description
+        address
+        coordinates {
+          lat
+          lng
         }
-        foodVideos {
-          title
-          url
-          thumbnail
-          description
-        }
+        placeId
+      }
+      foodVideos {
+        title
+        url
+        thumbnail
+        description
       }
     }
   }
+}
 `;
 
 export const GET_USER_PROFILE = gql`
