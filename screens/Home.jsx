@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { useQuery } from "@apollo/client";
+import { useQuery, useLazyQuery } from "@apollo/client";
 import MapDisplay from "../components/MapView";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
 import TodoList from "../components/TodoList";
@@ -23,12 +23,20 @@ import { Feather } from "@expo/vector-icons";
 
 const HomePage = () => {
   const navigation = useNavigation();
-  const { loading, error, data } = useQuery(GET_RECOMMENDATIONS);
+  const [getRecommendations, { loading, error, data }] =
+    useLazyQuery(GET_RECOMMENDATIONS);
   const { todoList, places, foodVideos } =
     data?.getUserProfile?.recommendations || {};
   const [todoListVisible, setTodoListVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+
+  useEffect(() => {
+    console.log("Fetching recommendations");
+    getRecommendations({ variables: { date: selectedDate.toISOString() } });
+  }, [selectedDate]);
+
+  console.log({ loading, error, data }, "data");
 
   const renderPlaceCard = ({ item }) => (
     <DetailDestination place={item} isPreview={true} />
@@ -44,17 +52,25 @@ const HomePage = () => {
 
   const handleConfirm = (date) => {
     setSelectedDate(date);
+    console.log(date, "<<<date");
+
     hideDatePicker();
   };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={{ flex: 1 }}>
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.header}>
             <Text style={styles.greeting}>Welcome to Karsaku 👋</Text>
-            <TouchableOpacity style={styles.dateContainer} onPress={showDatePicker}>
-            <Feather name="calendar" size={24} color="#FF9A8A" />
+            <TouchableOpacity
+              style={styles.dateContainer}
+              onPress={showDatePicker}
+            >
+              <Feather name="calendar" size={24} color="#FF9A8A" />
             </TouchableOpacity>
           </View>
 
@@ -96,14 +112,34 @@ const HomePage = () => {
                 </TouchableOpacity>
               ))
             )}
-            <Text style={styles.seeAll} onPress={() => setTodoListVisible(true)}>
+            {
+              // when todoList is empty redirect to Questions page
+              !todoList && (
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("retakeQuestions", {
+                      date: new Date(selectedDate).toISOString(),
+                    })
+                  }
+                  style={styles.seeAll}
+                >
+                  <Text style={styles.seeAll}>Retake Questions</Text>
+                </TouchableOpacity>
+              )
+            }
+            <Text
+              style={styles.seeAll}
+              onPress={() => setTodoListVisible(true)}
+            >
               See All
             </Text>
           </View>
 
           {/* Places Cards Section - Horizontal Scroll */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Healing Activity / Destination</Text>
+            <Text style={styles.sectionTitle}>
+              Healing Activity / Destination
+            </Text>
             {loading ? (
               <ActivityIndicator size="large" color="#FF9A8A" />
             ) : places && places.length > 0 ? (
@@ -140,6 +176,7 @@ const HomePage = () => {
 
           <TodoList
             todoList={todoList}
+            date={selectedDate}
             visible={todoListVisible}
             onClose={() => setTodoListVisible(false)}
           />
