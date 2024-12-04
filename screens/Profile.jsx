@@ -15,7 +15,7 @@ import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import * as SecureStore from "expo-secure-store";
 import { Menu, Provider } from "react-native-paper";
-import { useQuery, useMutation } from "@apollo/client";
+import { useQuery, useMutation, useLazyQuery } from "@apollo/client";
 import {
   GET_SAVED_TODOS,
   DELETE_TODO,
@@ -44,7 +44,7 @@ const ImageCard = ({ imageUrl, title }) => {
 const generateDates = () => {
   const dates = [];
   const today = new Date();
-  
+
   // Generate 30 hari sebelum dan sesudah hari ini
   for (let i = -30; i <= 30; i++) {
     const date = new Date(today);
@@ -58,21 +58,31 @@ const ProfilePage = () => {
   const { setIsSignedIn } = useContext(AuthContext);
   const [menuVisible, setMenuVisible] = useState(false);
   const [userId, setUserId] = useState("");
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const {
     loading: todosLoading,
     error: todosError,
     data: todosData,
-  } = useQuery(GET_SAVED_TODOS);
-  const {
-    loading: profileLoading,
-    error: profileError,
-    data: profileData,
-  } = useQuery(GET_USER_PROFILE);
+    refetch: refetchTodos,
+  } = useQuery(GET_SAVED_TODOS, {
+    variables: { date: new Date(selectedDate) },
+  });
+  console.log({ date: new Date(selectedDate) });
+
+  const [
+    getUserProfile,
+    {
+      loading: profileLoading,
+      error: profileError,
+      data: profileData,
+      refetch,
+    },
+  ] = useLazyQuery(GET_USER_PROFILE);
   const [deleteTodo] = useMutation(DELETE_TODO, { variables: { id: userId } });
   const [updateTodoStatus] = useMutation(UPDATE_TODO_STATUS);
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const dates = generateDates();
+  console.log(selectedDate, "<<<selectedDate");
 
   const placeToGoData = [
     {
@@ -117,8 +127,13 @@ const ProfilePage = () => {
           try {
             await deleteTodo({
               variables: { todoItem },
-              refetchQueries: [{ query: GET_SAVED_TODOS }],
+              refetchQueries: [
+                {
+                  query: GET_SAVED_TODOS,
+                },
+              ],
             });
+            await refetchTodos();
           } catch (error) {
             Alert.alert("Error", "Failed to delete todo item");
           }
@@ -130,7 +145,7 @@ const ProfilePage = () => {
   const showDatePicker = () => setDatePickerVisible(true);
   const hideDatePicker = () => setDatePickerVisible(false);
   const handleConfirm = (date) => {
-    setSelectedDate(date);
+    setSelectedDate(new Date(date));
     hideDatePicker();
   };
 
@@ -147,25 +162,28 @@ const ProfilePage = () => {
   // Fungsi untuk mengecek todo pada tanggal tertentu
   const hasTodoOnDate = (date) => {
     if (!todosData?.getSavedTodos) return false;
-    return todosData.getSavedTodos.some(todo => {
+    return todosData.getSavedTodos.some((todo) => {
       try {
         const todoDate = parseDate(todo.date);
-        return format(todoDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
+        return format(todoDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd");
       } catch {
         return false;
       }
     });
   };
 
-  const handleToggleStatus = async (todoId, currentStatus) => {
+  const handleToggleStatus = async (todoItem, currentStatus) => {
     try {
+      console.log({ todoItem, currentStatus });
+
       await updateTodoStatus({
-        variables: { 
-          id: todoId,
-          status: !currentStatus 
+        variables: {
+          todoItem: todoItem,
+          status: currentStatus === "pending" ? "success" : "pending",
         },
-        refetchQueries: [{ query: GET_SAVED_TODOS }]
+        refetchQueries: [{ query: GET_SAVED_TODOS }],
       });
+      await refetchTodos();
     } catch (error) {
       Alert.alert("Error", "Failed to update todo status");
     }
@@ -176,14 +194,7 @@ const ProfilePage = () => {
     if (todosLoading) return <Text>Loading...</Text>;
     if (todosError) return <Text>Error loading saved todos</Text>;
 
-    const todosForSelectedDate = todosData?.getSavedTodos?.filter(todo => {
-      try {
-        const todoDate = parseDate(todo.date);
-        return format(todoDate, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
-      } catch {
-        return false;
-      }
-    }) || [];
+    const todosForSelectedDate = todosData?.getSavedTodos || [];
 
     if (todosForSelectedDate.length === 0) {
       return (
@@ -194,34 +205,33 @@ const ProfilePage = () => {
     }
 
     return todosForSelectedDate.map((todo, index) => (
-      <View 
-        key={index} 
-        style={styles.todoItem}
-      >
+      <View key={index} style={styles.todoItem}>
         <View style={styles.todoLeftSection}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.checkboxContainer}
-            onPress={() => handleToggleStatus(todo.id, todo.status)}
+            onPress={() => handleToggleStatus(todo.todoItem, todo.status)}
           >
-            <Feather 
-              name={todo.status ? "check-square" : "square"} 
-              size={20} 
-              color="#FF9A8A" 
+            <Feather
+              name={todo.status === "success" ? "check-square" : "square"}
+              size={20}
+              color="#FF9A8A"
             />
           </TouchableOpacity>
           <View style={styles.todoTextContainer}>
-            <Text style={[
-              styles.todoText,
-              todo.status && styles.completedTodoText
-            ]}>
-              {todo.todoItem}
+            <Text
+              style={[
+                styles.todoText,
+                todo.status === "success" && styles.completedTodoText,
+              ]}
+            >
+              {todo.todoItem} - {todo.status}
             </Text>
             <Text style={styles.todoDate}>
-              {format(parseDate(todo.date), 'dd MMM', { locale: id })}
+              {format(parseDate(todo.date), "dd MMM", { locale: id })}
             </Text>
           </View>
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => handleDelete(todo.todoItem)}
           style={styles.deleteButton}
         >
@@ -294,30 +304,43 @@ const ProfilePage = () => {
 
           <View style={styles.calendarSection}>
             <View style={styles.weekDays}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
-                <Text key={i} style={styles.weekDayText}>{day}</Text>
-              ))}
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                (day, i) => (
+                  <Text key={i} style={styles.weekDayText}>
+                    {day}
+                  </Text>
+                )
+              )}
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.datesRow}>
                 {dates.map((date, i) => (
-                  <TouchableOpacity 
-                    key={i} 
+                  <TouchableOpacity
+                    key={i}
                     style={[
                       styles.dateBox,
-                      format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') && styles.selectedDate,
-                      hasTodoOnDate(date) && styles.hasTaskDate
+                      format(date, "yyyy-MM-dd") ===
+                        format(selectedDate, "yyyy-MM-dd") &&
+                        styles.selectedDate,
+                      hasTodoOnDate(date) && styles.hasTaskDate,
                     ]}
                     onPress={() => handleConfirm(date)}
                   >
-                    <Text style={[
-                      styles.dateNumber,
-                      format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && styles.todayText,
-                      format(date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') && styles.selectedDateText,
-                    ]}>
-                      {format(date, 'd')}
+                    <Text
+                      style={[
+                        styles.dateNumber,
+                        format(date, "yyyy-MM-dd") ===
+                          format(new Date(), "yyyy-MM-dd") && styles.todayText,
+                        format(date, "yyyy-MM-dd") ===
+                          format(selectedDate, "yyyy-MM-dd") &&
+                          styles.selectedDateText,
+                      ]}
+                    >
+                      {format(date, "d")}
                     </Text>
-                    {hasTodoOnDate(date) && <View style={styles.taskIndicator} />}
+                    {hasTodoOnDate(date) && (
+                      <View style={styles.taskIndicator} />
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -403,7 +426,7 @@ const styles = StyleSheet.create({
   },
   placeToGoContainer: {
     marginHorizontal: 16,
-    marginBottom: 40
+    marginBottom: 40,
   },
   placeToGoTitle: {
     fontSize: 16,
@@ -449,18 +472,18 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
-    color: '#333',
+    color: "#333",
   },
   todoItem: {
-    backgroundColor: '#FFF5F3',
+    backgroundColor: "#FFF5F3",
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -471,8 +494,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   todoLeftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   checkboxContainer: {
@@ -483,95 +506,95 @@ const styles = StyleSheet.create({
   },
   todoText: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
     marginBottom: 4,
   },
   todoDate: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
   },
   statusIndicator: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#8AFF8A',
+    backgroundColor: "#8AFF8A",
   },
   calendarSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     padding: 16,
     marginHorizontal: 16,
     borderRadius: 12,
     marginBottom: 24,
   },
   weekDays: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 12,
     paddingHorizontal: 8,
   },
   weekDayText: {
-    color: '#666',
+    color: "#666",
     fontSize: 12,
     width: 35,
-    textAlign: 'center',
+    textAlign: "center",
   },
   datesScrollView: {
     flexGrow: 0,
   },
   datesRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 8,
   },
   dateBox: {
     width: 35,
     height: 35,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 8,
     marginHorizontal: 2,
   },
   selectedDate: {
-    backgroundColor: '#FF9A8A',
+    backgroundColor: "#FF9A8A",
   },
   dateNumber: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   selectedDateText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: "#FFFFFF",
+    fontWeight: "bold",
   },
   todayText: {
-    color: '#FF9A8A',
-    fontWeight: 'bold',
+    color: "#FF9A8A",
+    fontWeight: "bold",
   },
   hasTaskDate: {
-    position: 'relative',
+    position: "relative",
   },
   taskIndicator: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 4,
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#FF9A8A',
+    backgroundColor: "#FF9A8A",
   },
   emptyStateContainer: {
     padding: 20,
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
   },
   emptyStateText: {
-    color: '#666',
+    color: "#666",
     fontSize: 14,
   },
   deleteButton: {
     padding: 8,
   },
   completedTodoText: {
-    textDecorationLine: 'line-through',
-    color: '#999',
+    textDecorationLine: "line-through",
+    color: "#999",
   },
 });
 

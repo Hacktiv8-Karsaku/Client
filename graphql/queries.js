@@ -1,23 +1,39 @@
 import { gql } from "@apollo/client";
 
 export const GET_SAVED_TODOS = gql`
-  query GetSavedTodos {
-    getSavedTodos
+  query GetSavedTodos($date: String) {
+    getSavedTodos(date: $date) {
+      todoItem
+      date
+      status
+    }
   }
 `;
 
 export const DELETE_TODO = gql`
-  mutation DeleteTodoItem($todoItem: String!) {
+  mutation DeleteTodoItem($todoItem: String) {
     deleteTodoItem(todoItem: $todoItem) {
       _id
-      savedTodos
+      savedTodos {
+        todoItem
+        date
+        status
+      }
     }
   }
 `;
 
 export const GET_RECOMMENDATIONS = gql`
-  query GetRecommendations {
-    getUserProfile {
+  query GetUserProfile($date: String) {
+    getUserProfile(date: $date) {
+      avoidedFoods
+      _id
+      dailyActivities
+      domicile
+      createdAt
+      lastQuestionDate
+      preferredFoods
+      stressLevel
       recommendations {
         todoList
         places {
@@ -36,6 +52,12 @@ export const GET_RECOMMENDATIONS = gql`
           description
         }
       }
+      email
+      job
+      name
+      password
+      updatedAt
+      username
     }
   }
 `;
@@ -65,8 +87,8 @@ export const GET_DESTINATIONS = gql`
 `;
 
 export const REGENERATE_TODOS = gql`
-  mutation RegenerateTodos {
-    regenerateTodos {
+  mutation RegenerateTodos($date: String) {
+    regenerateTodos(date: $date) {
       recommendations {
         todoList
       }
@@ -75,12 +97,9 @@ export const REGENERATE_TODOS = gql`
 `;
 
 export const UPDATE_TODO_STATUS = gql`
-  mutation UpdateTodoStatus($id: ID!, $status: Boolean!) {
-    updateTodoStatus(id: $id, status: $status) {
-      id
-      todoItem
-      status
-      date
+  mutation UpdateTodoStatus($todoItem: String, $status: String) {
+    updateTodoStatus(todoItem: $todoItem, status: $status) {
+      _id
     }
   }
 `;

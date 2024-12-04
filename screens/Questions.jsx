@@ -27,6 +27,7 @@ const UPDATE_USER_PREFERENCES = gql`
     $preferredFoods: [String]
     $avoidedFoods: [String]
     $domicile: String
+    $date: String
   ) {
     updateUserPreferences(
       job: $job
@@ -35,6 +36,7 @@ const UPDATE_USER_PREFERENCES = gql`
       preferredFoods: $preferredFoods
       avoidedFoods: $avoidedFoods
       domicile: $domicile
+      date: $date
     ) {
       _id
       job
@@ -44,7 +46,9 @@ const UPDATE_USER_PREFERENCES = gql`
   }
 `;
 
-export default function Questions() {
+export default function Questions({ route }) {
+  console.log(route.params, "<<<route.params");
+
   const { setShouldAskQuestions } = useContext(AuthContext);
   const navigation = useNavigation();
 
@@ -53,6 +57,7 @@ export default function Questions() {
   const [preferredFoods, setPreferredFoods] = useState("");
   const [avoidedFoods, setAvoidedFoods] = useState("");
   const [domicile, setDomicile] = useState("");
+  const [date] = useState(route?.params?.date || new Date().toISOString());
 
   const [updatePreferences] = useMutation(UPDATE_USER_PREFERENCES);
 
@@ -65,6 +70,7 @@ export default function Questions() {
           preferredFoods: preferredFoods.split(",").map((item) => item.trim()),
           avoidedFoods: avoidedFoods.split(",").map((item) => item.trim()),
           domicile: domicile.trim(),
+          date,
         },
         refetchQueries: [{ query: GET_RECOMMENDATIONS }],
       });
@@ -103,6 +109,7 @@ export default function Questions() {
         <Animatable.Text animation="fadeInDown" style={styles.title}>
           Let's Personalize Your Journey
         </Animatable.Text>
+        <Text>Questions For Date:{route?.params?.date}</Text>
 
         <Animatable.View animation="fadeInUp" style={styles.card}>
           {renderInputField(

@@ -28,14 +28,23 @@ export default function RootStack() {
                 }}
               />
             ) : (
-              <Stack.Screen
-                name="Home"
-                component={BottomTab}
-                options={{
-                  title: "Karsaku",
-                  headerShown: false,
-                }}
-              />
+              <>
+                <Stack.Screen
+                  name="Home"
+                  component={BottomTab}
+                  options={{
+                    title: "Karsaku",
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="retakeQuestions"
+                  component={Questions}
+                  options={{
+                    headerShown: false,
+                  }}
+                />
+              </>
             )}
             <Stack.Screen
               name="Profile"
