@@ -73,3 +73,14 @@ export const REGENERATE_TODOS = gql`
     }
   }
 `;
+
+export const UPDATE_TODO_STATUS = gql`
+  mutation UpdateTodoStatus($id: ID!, $status: Boolean!) {
+    updateTodoStatus(id: $id, status: $status) {
+      id
+      todoItem
+      status
+      date
+    }
+  }
+`;

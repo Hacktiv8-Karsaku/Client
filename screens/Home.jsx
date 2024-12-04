@@ -55,16 +55,6 @@ const HomePage = () => {
             <Text style={styles.greeting}>Welcome to Karsaku 👋</Text>
             <TouchableOpacity style={styles.dateContainer} onPress={showDatePicker}>
             <Feather name="calendar" size={24} color="#FF9A8A" />
-              {/* <View style={styles.monthSection}>
-                <Text style={styles.monthText}>
-                  {format(selectedDate, "MMM", { locale: id })}
-                </Text>
-              </View>
-              <View style={styles.dateSection}>
-                <Text style={styles.dateText}>
-                  {format(selectedDate, "dd", { locale: id })}
-                </Text>
-              </View> */}
             </TouchableOpacity>
           </View>
 
