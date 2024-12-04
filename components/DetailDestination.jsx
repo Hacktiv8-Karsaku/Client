@@ -1,27 +1,52 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ImageBackground } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { GOOGLE_MAPS_API_KEY } from "@env";
 
 const DetailDestination = ({ place, isPreview }) => {
-  const { 
-    name, 
-    rating, 
-    description, 
-    photos,
-    vicinity,
-    types,
-    opening_hours 
-  } = place;
+  const { name, description, placeId } = place;
+  // const placeId = "ChIJ-S4F5Bb0aS4RgVq6v81ZM4s"
+  const [placeImage, setPlaceImage] = useState(null);
 
-  // Mengambil foto dari Google Places API
-  const photoUrl = photos?.[0]?.photo_reference 
-    ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photos[0].photo_reference}&key=${process.env.GOOGLE_MAPS_API_KEY}`
-    : "https://via.placeholder.com/400";
+  useEffect(() => {
+    const fetchPlacePhoto = async () => {
+      try {
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photos&key=${GOOGLE_MAPS_API_KEY}`
+        );
+        const data = await response.json();
+        console.log(data);
+        
+        // const rating = data.result?.rating;
+        if (
+          data.result?.photos &&
+          data.result.photos.length > 0
+        ) {
+          const photoReference = data.result.photos[0].photo_reference;
+
+          const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${isPreview ? 150 : 250
+            }&photoreference=${photoReference}&key=${GOOGLE_MAPS_API_KEY}`;
+
+          setPlaceImage(photoUrl);
+        }
+      } catch (error) {
+        console.error("Error fetching place photo:", error);
+      }
+    };
+
+    if (placeId) {
+      fetchPlacePhoto();
+    }
+  }, [placeId, isPreview]);
 
   return (
     <View style={[styles.container, isPreview && styles.preview]}>
       <ImageBackground
-        source={{ uri: photoUrl }}
+        source={{
+          uri:
+            placeImage ||
+            "https://statik.tempo.co/data/2021/07/24/id_1037336/1037336_720.jpg",
+        }}
         style={[styles.background, isPreview && styles.previewBackground]}
       >
         <LinearGradient
@@ -32,16 +57,8 @@ const DetailDestination = ({ place, isPreview }) => {
         />
         <View style={styles.textContainer}>
           <Text style={styles.title}>{name}</Text>
-          <Text style={styles.rating}>⭐ {rating?.toFixed(1) || "N/A"}</Text>
-          {!isPreview && (
-            <>
-              <Text style={styles.description}>{vicinity}</Text>
-              <Text style={styles.type}>{types?.[0]?.replace(/_/g, ' ')}</Text>
-              <Text style={styles.status}>
-                {opening_hours?.open_now ? "Open Now" : "Closed"}
-              </Text>
-            </>
-          )}
+          <Text style={styles.rating}>Rating: 0/5</Text>
+          {!isPreview && <Text style={styles.description}>{description}</Text>}
         </View>
       </ImageBackground>
     </View>
@@ -63,7 +80,7 @@ const styles = StyleSheet.create({
   },
   background: {
     height: 250,
-    width: '100%',
+    width: "100%",
     justifyContent: "flex-end",
   },
   previewBackground: {

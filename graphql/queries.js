@@ -51,6 +51,13 @@ export const GET_RECOMMENDATIONS = gql`
           thumbnail
           description
         }
+        placeId
+      }
+      foodVideos {
+        title
+        url
+        thumbnail
+        description
       }
       email
       job
@@ -60,6 +67,7 @@ export const GET_RECOMMENDATIONS = gql`
       username
     }
   }
+}
 `;
 
 export const GET_USER_PROFILE = gql`

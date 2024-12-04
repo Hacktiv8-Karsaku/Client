@@ -23,7 +23,7 @@ import { Feather } from "@expo/vector-icons";
 
 const HomePage = () => {
   const navigation = useNavigation();
-  const [getRecommendations, { loading, error, data }] =
+  const [getRecommendations, { loading, error, data, refetch }] =
     useLazyQuery(GET_RECOMMENDATIONS);
   const { todoList, places, foodVideos } =
     data?.getUserProfile?.recommendations || {};
@@ -31,6 +31,8 @@ const HomePage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
+  // console.log("Places data in MapView:", places);
+  // console.log("First place coordinates:", places?.[0]?.coordinates);
   useEffect(() => {
     console.log("Fetching recommendations");
     getRecommendations({ variables: { date: selectedDate.toISOString() } });
@@ -74,6 +76,13 @@ const HomePage = () => {
             </TouchableOpacity>
           </View>
 
+          {/* Refresh Button */}
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={refetch}
+          >
+            <Text style={styles.refreshButtonText}>Refresh Home</Text>
+          </TouchableOpacity>
           <DateTimePickerModal
             isVisible={isDatePickerVisible}
             mode="date"
