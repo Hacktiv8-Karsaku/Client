@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -32,22 +32,41 @@ const SAVE_TODO = gql`
   }
 `;
 
-const TodoList = ({ todoList, visible, onClose }) => {
+const TodoList = ({ todoList = [], visible, onClose }) => {
   const { data: savedTodosData } = useQuery(GET_SAVED_TODOS);
   const [saveTodo] = useMutation(SAVE_TODO);
   const [regenerateTodos, { loading: regenerating }] = useMutation(REGENERATE_TODOS);
   const [loadingTodo, setLoadingTodo] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [localTodoList, setLocalTodoList] = useState([]);
 
   const savedTodos = savedTodosData?.getSavedTodos || [];
 
+  useEffect(() => {
+    if (todoList && todoList.length > 0) {
+      const updatedTodoList = todoList.map((todo, index) => {
+        const existingSavedTodo = savedTodos.find(savedTodo => savedTodo === todo);
+        return existingSavedTodo || todo;
+      });
+      setLocalTodoList(updatedTodoList);
+    }
+  }, [todoList, savedTodosData]);
+
   const handleRegenerateTodos = async () => {
     try {
-      await regenerateTodos({
+      setIsRegenerating(true);
+      const response = await regenerateTodos({
         refetchQueries: [{ query: GET_RECOMMENDATIONS }],
       });
-      Alert.alert('Success', 'Todo list has been regenerated!');
+      
+      setTimeout(() => {
+        setIsRegenerating(false);
+        Alert.alert('Success', 'Todo list has been regenerated!');
+      }, 1500);
+      
     } catch (error) {
+      setIsRegenerating(false);
       Alert.alert('Error', 'Failed to regenerate todo list');
     }
   };
@@ -90,6 +109,7 @@ const TodoList = ({ todoList, visible, onClose }) => {
   const renderTodoItem = (todo, index) => {
     const isSaved = savedTodos.includes(todo);
     const isLoading = loadingTodo === todo;
+    const showRegeneratingOverlay = isRegenerating && !isSaved;
     const animations = ['fadeInLeft', 'fadeInRight'];
     const animation = animations[index % 2];
 
@@ -111,7 +131,7 @@ const TodoList = ({ todoList, visible, onClose }) => {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            {isLoading && (
+            {(isLoading || showRegeneratingOverlay) && (
               <View style={styles.loadingOverlay}>
                 <Animatable.View animation={showSuccess ? 'bounceIn' : undefined}>
                   {showSuccess ? (
@@ -136,7 +156,7 @@ const TodoList = ({ todoList, visible, onClose }) => {
             <TouchableOpacity
               style={[styles.saveButton, isSaved && styles.savedButton]}
               onPress={() => handleSaveTodo(todo)}
-              disabled={isLoading}
+              disabled={isLoading || showRegeneratingOverlay}
             >
               <Text style={[styles.saveButtonText, isSaved && styles.savedButtonText]}>
                 {isSaved ? 'Saved' : 'Save'}
@@ -158,7 +178,7 @@ const TodoList = ({ todoList, visible, onClose }) => {
           style={styles.listContainer}
           showsVerticalScrollIndicator={false}
         >
-          {todoList?.map((todo, index) => renderTodoItem(todo, index))}
+          {localTodoList?.map((todo, index) => renderTodoItem(todo, index))}
         </ScrollView>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 

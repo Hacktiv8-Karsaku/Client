@@ -15,7 +15,7 @@ const DetailDestination = ({ place, isPreview }) => {
 
   // Mengambil foto dari Google Places API
   const photoUrl = photos?.[0]?.photo_reference 
-    ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photos[0].photo_reference}&key=YOUR_API_KEY`
+    ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photos[0].photo_reference}&key=${process.env.GOOGLE_MAPS_API_KEY}`
     : "https://via.placeholder.com/400";
 
   return (
@@ -32,7 +32,7 @@ const DetailDestination = ({ place, isPreview }) => {
         />
         <View style={styles.textContainer}>
           <Text style={styles.title}>{name}</Text>
-          <Text style={styles.rating}>Rating: {rating || 0}/5</Text>
+          <Text style={styles.rating}>⭐ {rating?.toFixed(1) || "N/A"}</Text>
           {!isPreview && (
             <>
               <Text style={styles.description}>{vicinity}</Text>

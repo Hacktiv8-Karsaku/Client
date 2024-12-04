@@ -9,7 +9,7 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Entypo } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
@@ -158,12 +158,12 @@ const ProfilePage = () => {
               </Text>
             </View>
             <View style={styles.pointsItem}>
-              <Feather name="smile" size={24} color="#FF9A8A" />
-              <Text style={styles.pointsText}>HTML/CSS</Text>
+              <Entypo name="location" size={24} color="#FF9A8A" />
+              <Text style={styles.pointsText}>Location</Text>
             </View>
             <View style={styles.pointsItem}>
               <Feather name="monitor" size={24} color="#FF9A8A" />
-              <Text style={styles.pointsText}>Graphic design</Text>
+              <Text style={styles.pointsText}>Job</Text>
             </View>
           </View>
 
