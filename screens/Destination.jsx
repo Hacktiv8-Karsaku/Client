@@ -1,8 +1,11 @@
+
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from "react-native";
 import * as Location from "expo-location";
 import { GOOGLE_MAPS_API_KEY } from "@env";
 import DetailDestination from "../components/DetailDestination";
+import { useQuery } from "@apollo/client";
+import { GET_RECOMMENDATIONS } from "../graphql/queries";
 
 const Destination = () => {
   const [places, setPlaces] = useState([]);
@@ -96,7 +99,7 @@ const Destination = () => {
       <Text style={styles.title}>Recommended Destinations Nearby</Text>
       <FlatList
         data={places}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => <DetailDestination place={item} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}

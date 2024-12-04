@@ -95,11 +95,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    height: 500,
+    height: 300,
   },
   map: {
     width: Dimensions.get("window").width,
-    height: 500,
+    height: 300,
   },
   calloutContainer: {
     width: 200,

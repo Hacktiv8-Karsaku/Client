@@ -105,6 +105,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#FFFFFF",
   },
+  type: {
+    fontSize: 12,
+    color: "#FFFFFF",
+  },
+  status: {
+    fontSize: 12,
+    color: "#FFFFFF",
+  },
 });
 
 export default DetailDestination;
