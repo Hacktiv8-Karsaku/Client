@@ -14,7 +14,7 @@ export default function BottomTab() {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === "HomePage") {
+          if (route.name === "Home") {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "Profile") {
             iconName = focused ? "person" : "person-outline";
@@ -36,7 +36,7 @@ export default function BottomTab() {
       })}
     >
       <Tab.Screen
-        name="HomePage"
+        name="Home"
         component={Home}
         options={{ headerShown: false }}
       />

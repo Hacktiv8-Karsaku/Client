@@ -28,15 +28,15 @@ export default function RootStack() {
                 }}
               />
             ) : (
-              <Stack.Screen
-                name="Home"
-                component={BottomTab}
-                options={{
-                  title: "Karsaku",
-                  headerShown: false,
-                }}
-              />
-
+              <>
+                <Stack.Screen
+                  name="Home"
+                  component={BottomTab}
+                  options={{
+                    title: "Karsaku",
+                    headerShown: false,
+                  }}
+                />
                 <Stack.Screen
                   name="retakeQuestions"
                   component={Questions}
@@ -44,6 +44,7 @@ export default function RootStack() {
                     headerShown: false,
                   }}
                 />
+              </>
             )}
             <Stack.Screen
               name="Profile"
@@ -54,13 +55,6 @@ export default function RootStack() {
               name="Destination"
               component={Destination}
               options={{ title: "Recommended Destinations" }}
-            />
-            <Stack.Screen
-              name="QuestionsRetake"
-              component={Questions}
-              options={{
-                headerShown: false,
-              }}
             />
           </>
         ) : (
