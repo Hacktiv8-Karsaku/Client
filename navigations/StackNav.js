@@ -11,15 +11,32 @@ import ProfessionalDashboard from "../screens/ProfessionalDashboard";
 import LoginProfessional from "../screens/LoginProfessional";
 import ProfessionalChat from "../screens/ProfessionalChat";
 import UserChatHistory from "../screens/userChatHistory";
-import * as SecureStore from 'expo-secure-store';
-import { useContext, useState, useEffect } from "react";
-import { AuthContext } from "../context/AuthContext";
 import VideoCallScreen from "../screens/VideoCallScreen";
+import { useContext, useEffect, useState } from "react";
+import { AuthContext } from "../context/AuthContext";
+import * as SecureStore from 'expo-secure-store';
 
 const Stack = createNativeStackNavigator();
 
 export default function RootStack() {
-  const { isSignedIn, userRole } = useContext(AuthContext);
+  const { isSignedIn } = useContext(AuthContext);
+  const [role, setRole] = useState(null);
+
+  useEffect(() => {
+    const getRole = async () => {
+      try {
+        const userRole = await SecureStore.getItemAsync('role');
+        console.log('User role from SecureStore:', userRole);
+        setRole(userRole);
+      } catch (error) {
+        console.error('Error getting role from SecureStore:', error);
+      }
+    };
+
+    if (isSignedIn) {
+      getRole();
+    }
+  }, [isSignedIn]);
 
   return (
     <NavigationContainer>
@@ -36,18 +53,21 @@ export default function RootStack() {
       >
         {isSignedIn ? (
           // Authenticated Stack
-          userRole === 'professional' ? (
+          role === 'professional' ? (
             // Professional Routes
             <>
               <Stack.Screen
                 name="ProfessionalDashboard"
                 component={ProfessionalDashboard}
-                options={{ title: "Dashboard" }}
+                options={{ 
+                  title: "Professional Dashboard",
+                  headerLeft: null,
+                }}
               />
               <Stack.Screen
                 name="ProfessionalChat"
                 component={ProfessionalChat}
-                options={{ title: "Chats" }}
+                options={{ title: "Chat" }}
               />
               <Stack.Screen
                 name="VideoCall"
@@ -127,7 +147,6 @@ export default function RootStack() {
             />
           </>
         )}
-
       </Stack.Navigator>
     </NavigationContainer>
   );

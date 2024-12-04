@@ -76,7 +76,7 @@ const ProfilePage = () => {
   ];
 
   const handleLogout = async () => {
-    await SecureStore.deleteItemAsync("access_token");
+    await SecureStore.deleteItemAsync("access_token","professional_id","role");
     setIsSignedIn(false);
   };
 
