@@ -51,6 +51,9 @@
           "remindersPermission": "Allow $(PRODUCT_NAME) to access your reminders"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "googlePlacesApiKey": "AIzaSyD1KhTldI_xlrWL014hnM3YgbPSdhxDYQY"
+    }
   }
 }
