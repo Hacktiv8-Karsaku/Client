@@ -37,13 +37,6 @@ export default function RootStack() {
                 }}
               />
 
-                <Stack.Screen
-                  name="retakeQuestions"
-                  component={Questions}
-                  options={{
-                    headerShown: false,
-                  }}
-                />
             )}
             <Stack.Screen
               name="Profile"

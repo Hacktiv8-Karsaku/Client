@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,73 +9,46 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
-} from "react-native";
-import { gql, useMutation, useQuery } from "@apollo/client";
-import * as Calendar from "expo-calendar";
-import * as Animatable from "react-native-animatable";
-import { LinearGradient } from "expo-linear-gradient";
-import { Feather } from "@expo/vector-icons";
-import { GET_RECOMMENDATIONS, REGENERATE_TODOS } from "../graphql/queries";
+} from 'react-native';
+import { gql, useMutation, useQuery } from '@apollo/client';
+import * as Calendar from 'expo-calendar';
+import * as Animatable from 'react-native-animatable';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
+import { GET_RECOMMENDATIONS, REGENERATE_TODOS } from '../graphql/queries';
 
 const GET_SAVED_TODOS = gql`
-  query GetSavedTodos($date: String) {
-    getSavedTodos(date: $date) {
-      todoItem
-      date
-      status
-    }
+  query GetSavedTodos {
+    getSavedTodos
   }
 `;
 
 const SAVE_TODO = gql`
-  mutation SaveTodoItem($todoItem: String, $date: String) {
-    saveTodoItem(todoItem: $todoItem, date: $date) {
+  mutation SaveTodoItem($todoItem: String!) {
+    saveTodoItem(todoItem: $todoItem) {
       _id
+      savedTodos
     }
   }
 `;
 
-const TodoList = ({ todoList = [], visible, onClose, date }) => {
-  const { data: savedTodosData, refetch } = useQuery(GET_SAVED_TODOS, {
-    variables: { date },
-  });
+const TodoList = ({ todoList, visible, onClose }) => {
+  const { data: savedTodosData } = useQuery(GET_SAVED_TODOS);
   const [saveTodo] = useMutation(SAVE_TODO);
-  const [regenerateTodos, { loading: regenerating }] =
-    useMutation(REGENERATE_TODOS);
+  const [regenerateTodos, { loading: regenerating }] = useMutation(REGENERATE_TODOS);
   const [loadingTodo, setLoadingTodo] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [localTodoList, setLocalTodoList] = useState([]);
 
   const savedTodos = savedTodosData?.getSavedTodos || [];
 
-  useEffect(() => {
-    if (todoList && todoList.length > 0) {
-      const updatedTodoList = todoList.map((todo, index) => {
-        const existingSavedTodo = savedTodos.find(
-          (savedTodo) => savedTodo === todo
-        );
-        return existingSavedTodo || todo;
-      });
-      setLocalTodoList(updatedTodoList);
-    }
-  }, [todoList, savedTodosData]);
-
   const handleRegenerateTodos = async () => {
     try {
-      setIsRegenerating(true);
-      const response = await regenerateTodos({
-        variables: { date },
+      await regenerateTodos({
         refetchQueries: [{ query: GET_RECOMMENDATIONS }],
       });
-
-      setTimeout(() => {
-        setIsRegenerating(false);
-        Alert.alert("Success", "Todo list has been regenerated!");
-      }, 1500);
+      Alert.alert('Success', 'Todo list has been regenerated!');
     } catch (error) {
-      setIsRegenerating(false);
-      Alert.alert("Error", "Failed to regenerate todo list");
+      Alert.alert('Error', 'Failed to regenerate todo list');
     }
   };
 
@@ -83,50 +56,41 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
     setLoadingTodo(todo);
     setShowSuccess(false);
     try {
-      console.log(date, "<<<date");
-
       await saveTodo({
-        variables: { todoItem: todo, date: date },
+        variables: { todoItem: todo },
         refetchQueries: [{ query: GET_SAVED_TODOS }],
       });
-      await refetch();
 
       const calendarStatus = await Calendar.requestCalendarPermissionsAsync();
-      if (calendarStatus.status === "granted") {
-        const calendars = await Calendar.getCalendarsAsync(
-          Calendar.EntityTypes.EVENT
-        );
-        const defaultCalendar = calendars.find(
-          (cal) => cal.allowsModifications
-        );
-
+      if (calendarStatus.status === 'granted') {
+        const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+        const defaultCalendar = calendars.find(cal => cal.allowsModifications);
+        
         if (defaultCalendar) {
           await Calendar.createEventAsync(defaultCalendar.id, {
             title: todo,
             startDate: new Date(),
             endDate: new Date(new Date().getTime() + 30 * 60 * 1000),
-            timeZone: "GMT",
+            timeZone: 'GMT',
           });
         }
       }
-
+      
       setShowSuccess(true);
       setTimeout(() => {
         setLoadingTodo(null);
         setShowSuccess(false);
       }, 1500);
     } catch (error) {
-      Alert.alert("Error saving todo", error.message);
+      Alert.alert('Error saving todo', error.message);
       setLoadingTodo(null);
     }
   };
 
   const renderTodoItem = (todo, index) => {
-    console.log(savedTodos, "<<<saveTodo");
-    const isSaved = savedTodos.map((el) => el.todoItem).includes(todo);
+    const isSaved = savedTodos.includes(todo);
     const isLoading = loadingTodo === todo;
-    const showRegeneratingOverlay = isRegenerating && !isSaved;
-    const animations = ["fadeInLeft", "fadeInRight"];
+    const animations = ['fadeInLeft', 'fadeInRight'];
     const animation = animations[index % 2];
 
     return (
@@ -137,21 +101,19 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
         key={index}
       >
         <Animatable.View
-          animation={isSaved ? "pulse" : undefined}
+          animation={isSaved ? 'pulse' : undefined}
           duration={1000}
           style={styles.animationWrapper}
         >
           <LinearGradient
-            colors={isSaved ? ["#FFF5F3", "#FFF5F3"] : ["#FFB5A7", "#FF9A8A"]}
+            colors={isSaved ? ['#FFF5F3', '#FFF5F3'] : ['#FFB5A7', '#FF9A8A']}
             style={[styles.card, isSaved && styles.savedCard]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            {(isLoading || showRegeneratingOverlay) && (
+            {isLoading && (
               <View style={styles.loadingOverlay}>
-                <Animatable.View
-                  animation={showSuccess ? "bounceIn" : undefined}
-                >
+                <Animatable.View animation={showSuccess ? 'bounceIn' : undefined}>
                   {showSuccess ? (
                     <Feather name="check-circle" size={40} color="#FF9A8A" />
                   ) : (
@@ -161,10 +123,10 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
               </View>
             )}
             <View style={styles.todoContent}>
-              <Feather
-                name={isSaved ? "check-circle" : "circle"}
-                size={24}
-                color={isSaved ? "#FF9A8A" : "#FFF"}
+              <Feather 
+                name={isSaved ? "check-circle" : "circle"} 
+                size={24} 
+                color={isSaved ? "#FF9A8A" : "#FFF"} 
                 style={styles.icon}
               />
               <Text style={[styles.todoText, isSaved && styles.savedTodoText]}>
@@ -174,15 +136,10 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
             <TouchableOpacity
               style={[styles.saveButton, isSaved && styles.savedButton]}
               onPress={() => handleSaveTodo(todo)}
-              disabled={isLoading || showRegeneratingOverlay}
+              disabled={isLoading}
             >
-              <Text
-                style={[
-                  styles.saveButtonText,
-                  isSaved && styles.savedButtonText,
-                ]}
-              >
-                {isSaved ? "Saved" : "Save"}
+              <Text style={[styles.saveButtonText, isSaved && styles.savedButtonText]}>
+                {isSaved ? 'Saved' : 'Save'}
               </Text>
             </TouchableOpacity>
           </LinearGradient>
@@ -197,38 +154,30 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
         <Animatable.Text animation="fadeInDown" style={styles.title}>
           Your Healing Journey
         </Animatable.Text>
-        <ScrollView
+        <ScrollView 
           style={styles.listContainer}
           showsVerticalScrollIndicator={false}
         >
-          {localTodoList?.map((todo, index) => renderTodoItem(todo, index))}
+          {todoList?.map((todo, index) => renderTodoItem(todo, index))}
         </ScrollView>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[
-              styles.regenerateButton,
-              regenerating && styles.regeneratingButton,
-            ]}
+          <TouchableOpacity 
+            style={[styles.regenerateButton, regenerating && styles.regeneratingButton]}
             onPress={handleRegenerateTodos}
             disabled={regenerating}
           >
-            <Feather
-              name="refresh-cw"
-              size={20}
-              color="#FF9A8A"
-              style={styles.buttonIcon}
+            <Feather 
+              name="refresh-cw" 
+              size={20} 
+              color="#FF9A8A" 
+              style={styles.buttonIcon} 
             />
             <Text style={styles.regenerateButtonText}>
-              {regenerating ? "Regenerating..." : "Regenerate"}
+              {regenerating ? 'Regenerating...' : 'Regenerate'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Feather
-              name="x"
-              size={20}
-              color="#FFF"
-              style={styles.buttonIcon}
-            />
+            <Feather name="x" size={20} color="#FFF" style={styles.buttonIcon} />
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
         </View>
@@ -240,14 +189,14 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFF5F3",
+    backgroundColor: '#FFF5F3',
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginVertical: 20,
-    textAlign: "center",
-    color: "#FF9A8A",
+    textAlign: 'center',
+    color: '#FF9A8A',
     paddingHorizontal: 20,
   },
   listContainer: {
@@ -258,7 +207,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 16,
     elevation: 3,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -268,8 +217,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   todoContent: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
   },
   icon: {
@@ -278,42 +227,42 @@ const styles = StyleSheet.create({
   todoText: {
     flex: 1,
     fontSize: 16,
-    color: "#FFF",
-    fontWeight: "500",
+    color: '#FFF',
+    fontWeight: '500',
   },
   saveButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
   },
   saveButtonText: {
-    color: "#FFF",
-    fontWeight: "bold",
+    color: '#FFF',
+    fontWeight: 'bold',
   },
   buttonContainer: {
     padding: 16,
     paddingBottom: 32,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 154, 138, 0.2)",
+    borderTopColor: 'rgba(255, 154, 138, 0.2)',
   },
   regenerateButton: {
-    backgroundColor: "#FFF5F3",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#FFF5F3',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 25,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: "#FF9A8A",
+    borderColor: '#FF9A8A',
   },
   closeButton: {
-    backgroundColor: "#FF9A8A",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#FF9A8A',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 25,
   },
@@ -321,46 +270,46 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   regenerateButtonText: {
-    color: "#FF9A8A",
-    fontWeight: "bold",
+    color: '#FF9A8A',
+    fontWeight: 'bold',
     fontSize: 16,
   },
   closeButtonText: {
-    color: "#FFF",
-    fontWeight: "bold",
+    color: '#FFF',
+    fontWeight: 'bold',
     fontSize: 16,
   },
   savedCard: {
     borderWidth: 2,
-    borderColor: "#FF9A8A",
+    borderColor: '#FF9A8A',
   },
   savedTodoText: {
-    color: "#FF9A8A",
+    color: '#FF9A8A',
   },
   savedButton: {
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: "#FF9A8A",
+    borderColor: '#FF9A8A',
   },
   savedButtonText: {
-    color: "#FF9A8A",
+    color: '#FF9A8A',
   },
   regeneratingButton: {
     opacity: 0.7,
   },
   animationWrapper: {
     borderRadius: 16,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   loadingOverlay: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 16,
     zIndex: 1,
   },
