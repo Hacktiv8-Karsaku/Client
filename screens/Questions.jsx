@@ -8,6 +8,7 @@ import {
   Alert,
   View,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import { gql, useMutation } from "@apollo/client";
 import { useNavigation } from "@react-navigation/native";
@@ -58,10 +59,12 @@ export default function Questions({ route }) {
   const [avoidedFoods, setAvoidedFoods] = useState("");
   const [domicile, setDomicile] = useState("");
   const [date] = useState(route?.params?.date || new Date().toISOString());
+  const [isLoading, setIsLoading] = useState(false);
 
   const [updatePreferences] = useMutation(UPDATE_USER_PREFERENCES);
 
   const handleSubmit = async () => {
+    setIsLoading(true);
     try {
       const { data } = await updatePreferences({
         variables: {
@@ -88,6 +91,8 @@ export default function Questions({ route }) {
       }
     } catch (error) {
       Alert.alert("Error", error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -154,15 +159,25 @@ export default function Questions({ route }) {
           )}
 
           <Animatable.View animation="fadeInUp" delay={600}>
-            <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+            <TouchableOpacity 
+              style={[styles.button, isLoading && styles.buttonDisabled]}
+              onPress={handleSubmit}
+              disabled={isLoading}
+            >
               <LinearGradient
                 colors={["#FF9A8A", "#FF8080"]}
                 style={styles.buttonGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Text style={styles.buttonText}>Start My Journey</Text>
-                <Feather name="arrow-right" size={20} color="#FFF" />
+                {isLoading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <>
+                    <Text style={styles.buttonText}>Start My Journey</Text>
+                    <Feather name="arrow-right" size={20} color="#FFF" />
+                  </>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           </Animatable.View>
@@ -239,6 +254,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginRight: 8,
     fontSize: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   header: {
     height: 200,
