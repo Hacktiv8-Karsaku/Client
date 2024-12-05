@@ -77,7 +77,15 @@ export default function Questions({ route }) {
 
       await SecureStore.setItemAsync("questions_completed", "true");
       setShouldAskQuestions(false);
-      navigation.replace("Home");
+
+      if (route.name === "retakeQuestions") {
+        navigation.goBack();
+        if (route.params?.onRetakeComplete) {
+          route.params.onRetakeComplete();
+        }
+      } else {
+        navigation.replace("HomePage");
+      }
     } catch (error) {
       Alert.alert("Error", error.message);
     }
@@ -219,10 +227,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     overflow: "hidden",
     borderRadius: 12,
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    marginVertical: 8,
   },
   buttonGradient: {
     flexDirection: "row",
@@ -233,11 +237,8 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#FFF",
     fontWeight: "bold",
-    fontSize: 18,
     marginRight: 8,
     fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   header: {
     height: 200,

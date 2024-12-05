@@ -57,6 +57,14 @@ const HomePage = () => {
     hideDatePicker();
   };
 
+  const handleRetakeComplete = () => {
+    // Refresh recommendations data
+    getRecommendations({ 
+      variables: { date: selectedDate.toISOString() },
+      fetchPolicy: 'network-only' // Memastikan data diambil ulang dari server
+    });
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={{ flex: 1 }}>
@@ -97,7 +105,12 @@ const HomePage = () => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Preview To Do List</Text>
               <TouchableOpacity
-                onPress={() => navigation.navigate("Questions")}
+                onPress={() =>
+                  navigation.navigate("retakeQuestions", {
+                    date: new Date(selectedDate).toISOString(),
+                    onRetakeComplete: handleRetakeComplete, // Menambahkan callback
+                  })
+                }
                 style={styles.retakeButton}
               >
                 <Text style={styles.retakeButtonText}>Retake Questions</Text>
@@ -105,34 +118,25 @@ const HomePage = () => {
             </View>
             {loading ? (
               <ActivityIndicator size="large" color="#FF9A8A" />
-            ) : (
-              todoList?.slice(0, 3).map((todo, index) => (
-                <TouchableOpacity key={index} style={styles.card}>
-                  <Text style={styles.cardText}>{todo}</Text>
-                </TouchableOpacity>
-              ))
-            )}
-            {
-              // when todoList is empty redirect to Questions page
-              !todoList && (
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate("retakeQuestions", {
-                      date: new Date(selectedDate).toISOString(),
-                    })
-                  }
+            ) : todoList?.length > 0 ? (
+              <>
+                {todoList?.slice(0, 3).map((todo, index) => (
+                  <TouchableOpacity key={index} style={styles.card}>
+                    <Text style={styles.cardText}>{todo}</Text>
+                  </TouchableOpacity>
+                ))}
+                <Text
                   style={styles.seeAll}
+                  onPress={() => setTodoListVisible(true)}
                 >
-                  <Text style={styles.seeAll}>Retake Questions</Text>
-                </TouchableOpacity>
-              )
-            }
-            <Text
-              style={styles.seeAll}
-              onPress={() => setTodoListVisible(true)}
-            >
-              See All
-            </Text>
+                  See All
+                </Text>
+              </>
+            ) : (
+              <View style={styles.emptyStateContainer}>
+                <Text style={styles.emptyStateText}>No Preview To Do</Text>
+              </View>
+            )}
           </View>
 
           {/* Places Cards Section - Horizontal Scroll */}
@@ -269,6 +273,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
+  },
+  centerButton: {
+    alignSelf: 'center',
+    marginVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
   },
   retakeButtonText: {
     color: "#FFF",
