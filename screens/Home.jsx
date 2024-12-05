@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -8,35 +8,54 @@ import {
   ActivityIndicator,
   FlatList,
 } from "react-native";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { useQuery } from "@apollo/client";
-import ImageCard from "../components/ImageCard";
+import { useQuery, useLazyQuery } from "@apollo/client";
 import MapDisplay from "../components/MapView";
-import Destination from "../screens/Destination";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
 import TodoList from "../components/TodoList";
 import DetailDestination from "../components/DetailDestination";
 import VideoRecommendations from "../components/VideoRecommendations";
+import { Feather } from "@expo/vector-icons";
 
 const HomePage = () => {
   const navigation = useNavigation();
-  const { loading, error, data, refetch } = useQuery(GET_RECOMMENDATIONS);
+  const [getRecommendations, { loading, error, data }] =
+    useLazyQuery(GET_RECOMMENDATIONS);
   const { todoList, places, foodVideos } =
     data?.getUserProfile?.recommendations || {};
   const [todoListVisible, setTodoListVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
-  // console.log("Places data in MapView:", places);
-  // console.log("First place coordinates:", places?.[0]?.coordinates);
+  useEffect(() => {
+    console.log("Fetching recommendations");
+    getRecommendations({ variables: { date: selectedDate.toISOString() } });
+  }, [selectedDate]);
+
+  console.log({ loading, error, data }, "data");
 
   const renderPlaceCard = ({ item }) => (
-    <DetailDestination
-      place={item}
-      isPreview={true}
-    />
+    <DetailDestination place={item} isPreview={true} />
   );
 
-  console.log("Places data:", places);
+  const showDatePicker = () => {
+    setDatePickerVisible(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisible(false);
+  };
+
+  const handleConfirm = (date) => {
+    setSelectedDate(date);
+    console.log(date, "<<<date");
+
+    hideDatePicker();
+  };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -47,18 +66,21 @@ const HomePage = () => {
         >
           <View style={styles.header}>
             <Text style={styles.greeting}>Welcome to Karsaku 👋</Text>
-            <TouchableOpacity style={styles.circle}>
-              <View style={styles.circle} />
+            <TouchableOpacity
+              style={styles.dateContainer}
+              onPress={showDatePicker}
+            >
+              <Feather name="calendar" size={24} color="#FF9A8A" />
             </TouchableOpacity>
           </View>
 
-          {/* Refresh Button */}
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={refetch}
-          >
-            <Text style={styles.refreshButtonText}>Refresh Home</Text>
-          </TouchableOpacity>
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="date"
+            onConfirm={handleConfirm}
+            onCancel={hideDatePicker}
+            date={selectedDate}
+          />
 
           {/* Places Section with Map */}
           <View style={styles.section}>
@@ -75,7 +97,7 @@ const HomePage = () => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Preview To Do List</Text>
               <TouchableOpacity
-                onPress={() => navigation.navigate("QuestionsRetake")}
+                onPress={() => navigation.navigate("Questions")}
                 style={styles.retakeButton}
               >
                 <Text style={styles.retakeButtonText}>Retake Questions</Text>
@@ -90,6 +112,21 @@ const HomePage = () => {
                 </TouchableOpacity>
               ))
             )}
+            {
+              // when todoList is empty redirect to Questions page
+              !todoList && (
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("retakeQuestions", {
+                      date: new Date(selectedDate).toISOString(),
+                    })
+                  }
+                  style={styles.seeAll}
+                >
+                  <Text style={styles.seeAll}>Retake Questions</Text>
+                </TouchableOpacity>
+              )
+            }
             <Text
               style={styles.seeAll}
               onPress={() => setTodoListVisible(true)}
@@ -100,7 +137,9 @@ const HomePage = () => {
 
           {/* Places Cards Section - Horizontal Scroll */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Healing Activity / Destination</Text>
+            <Text style={styles.sectionTitle}>
+              Healing Activity / Destination
+            </Text>
             {loading ? (
               <ActivityIndicator size="large" color="#FF9A8A" />
             ) : places && places.length > 0 ? (
@@ -137,6 +176,7 @@ const HomePage = () => {
 
           <TodoList
             todoList={todoList}
+            date={selectedDate}
             visible={todoListVisible}
             onClose={() => setTodoListVisible(false)}
           />
@@ -163,11 +203,34 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333333",
   },
-  circle: {
-    width: 40,
-    height: 40,
+  dateContainer: {
+    flexDirection: "row",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  monthSection: {
     backgroundColor: "#FF9A8A",
-    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  monthText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "bold", // Menebalkan teks bulan
+  },
+  dateSection: {
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dateText: {
+    color: "#FF9A8A",
+    fontSize: 18,
+    fontWeight: "bold",
   },
   section: {
     marginBottom: 24,
@@ -195,60 +258,22 @@ const styles = StyleSheet.create({
   horizontalScrollContainer: {
     paddingHorizontal: 8,
   },
-  horizontalCard: {
-    marginRight: 12,
-    width: 250,
-  },
-  overlayContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-  },
-  cardRating: {
-    fontSize: 14,
-    color: "#FF9A8A",
-  },
-  cardDescription: {
-    fontSize: 12,
-    color: "#FFFFFF",
-  },
-  cardContainer: {
-    marginHorizontal: 8,
-    width: 250,
-    borderRadius: 8,
-    overflow: "hidden",
-    backgroundColor: "#F5F5F5",
-  },
-  imageContainer: {
-    width: "100%",
-    height: 150,
-  },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   retakeButton: {
-    backgroundColor: '#FF9A8A',
+    backgroundColor: "#FF9A8A",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   retakeButtonText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,18 +9,22 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Entypo } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import * as SecureStore from "expo-secure-store";
 import { Menu, Provider } from "react-native-paper";
-import { useQuery, useMutation } from "@apollo/client";
+import { useQuery, useMutation, useLazyQuery } from "@apollo/client";
 import {
   GET_SAVED_TODOS,
   DELETE_TODO,
   GET_USER_PROFILE,
+  UPDATE_TODO_STATUS,
 } from "../graphql/queries";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 const ImageCard = ({ imageUrl, title }) => {
   return (
@@ -37,21 +41,48 @@ const ImageCard = ({ imageUrl, title }) => {
   );
 };
 
+const generateDates = () => {
+  const dates = [];
+  const today = new Date();
+
+  // Generate 30 hari sebelum dan sesudah hari ini
+  for (let i = -30; i <= 30; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    dates.push(date);
+  }
+  return dates;
+};
+
 const ProfilePage = () => {
   const { setIsSignedIn } = useContext(AuthContext);
   const [menuVisible, setMenuVisible] = useState(false);
   const [userId, setUserId] = useState("");
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const {
     loading: todosLoading,
     error: todosError,
     data: todosData,
-  } = useQuery(GET_SAVED_TODOS);
-  const {
-    loading: profileLoading,
-    error: profileError,
-    data: profileData,
-  } = useQuery(GET_USER_PROFILE);
+    refetch: refetchTodos,
+  } = useQuery(GET_SAVED_TODOS, {
+    variables: { date: new Date(selectedDate) },
+  });
+  console.log({ date: new Date(selectedDate) });
+
+  const [
+    getUserProfile,
+    {
+      loading: profileLoading,
+      error: profileError,
+      data: profileData,
+      refetch,
+    },
+  ] = useLazyQuery(GET_USER_PROFILE);
   const [deleteTodo] = useMutation(DELETE_TODO, { variables: { id: userId } });
+  const [updateTodoStatus] = useMutation(UPDATE_TODO_STATUS);
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const dates = generateDates();
+  console.log(selectedDate, "<<<selectedDate");
 
   const placeToGoData = [
     {
@@ -96,8 +127,13 @@ const ProfilePage = () => {
           try {
             await deleteTodo({
               variables: { todoItem },
-              refetchQueries: [{ query: GET_SAVED_TODOS }],
+              refetchQueries: [
+                {
+                  query: GET_SAVED_TODOS,
+                },
+              ],
             });
+            await refetchTodos();
           } catch (error) {
             Alert.alert("Error", "Failed to delete todo item");
           }
@@ -105,6 +141,109 @@ const ProfilePage = () => {
       },
     ]);
   };
+
+  const showDatePicker = () => setDatePickerVisible(true);
+  const hideDatePicker = () => setDatePickerVisible(false);
+  const handleConfirm = (date) => {
+    setSelectedDate(new Date(date));
+    hideDatePicker();
+  };
+
+  // Fungsi untuk memastikan tanggal valid
+  const parseDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return isNaN(date.getTime()) ? new Date() : date;
+    } catch {
+      return new Date();
+    }
+  };
+
+  // Fungsi untuk mengecek todo pada tanggal tertentu
+  const hasTodoOnDate = (date) => {
+    if (!todosData?.getSavedTodos) return false;
+    return todosData.getSavedTodos.some((todo) => {
+      try {
+        const todoDate = parseDate(todo.date);
+        return format(todoDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd");
+      } catch {
+        return false;
+      }
+    });
+  };
+
+  const handleToggleStatus = async (todoItem, currentStatus) => {
+    try {
+      console.log({ todoItem, currentStatus });
+
+      await updateTodoStatus({
+        variables: {
+          todoItem: todoItem,
+          status: currentStatus === "pending" ? "success" : "pending",
+        },
+        refetchQueries: [{ query: GET_SAVED_TODOS }],
+      });
+      await refetchTodos();
+    } catch (error) {
+      Alert.alert("Error", "Failed to update todo status");
+    }
+  };
+
+  // Fungsi render todo list yang diperbarui
+  const renderTodoList = () => {
+    if (todosLoading) return <Text>Loading...</Text>;
+    if (todosError) return <Text>Error loading saved todos</Text>;
+
+    const todosForSelectedDate = todosData?.getSavedTodos || [];
+
+    if (todosForSelectedDate.length === 0) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <Text style={styles.emptyStateText}>No tasks for this date</Text>
+        </View>
+      );
+    }
+
+    return todosForSelectedDate.map((todo, index) => (
+      <View key={index} style={styles.todoItem}>
+        <View style={styles.todoLeftSection}>
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => handleToggleStatus(todo.todoItem, todo.status)}
+          >
+            <Feather
+              name={todo.status === "success" ? "check-square" : "square"}
+              size={20}
+              color="#FF9A8A"
+            />
+          </TouchableOpacity>
+          <View style={styles.todoTextContainer}>
+            <Text
+              style={[
+                styles.todoText,
+                todo.status === "success" && styles.completedTodoText,
+              ]}
+            >
+              {todo.todoItem} - {todo.status}
+            </Text>
+            <Text style={styles.todoDate}>
+              {format(parseDate(todo.date), "dd MMM", { locale: id })}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          onPress={() => handleDelete(todo.todoItem)}
+          style={styles.deleteButton}
+        >
+          <Feather name="trash-2" size={20} color="#FF9A8A" />
+        </TouchableOpacity>
+      </View>
+    ));
+  };
+
+  useEffect(() => {
+    getUserProfile();
+  }, []);
 
   return (
     <Provider>
@@ -158,42 +297,84 @@ const ProfilePage = () => {
               </Text>
             </View>
             <View style={styles.pointsItem}>
-              <Feather name="smile" size={24} color="#FF9A8A" />
-              <Text style={styles.pointsText}>HTML/CSS</Text>
+              <Entypo name="location" size={24} color="#FF9A8A" />
+              <Text style={styles.pointsText}>
+                {profileLoading
+                  ? "Loading..."
+                  : profileError
+                  ? "Error"
+                  : profileData?.getUserProfile?.domicile || "Not set"}
+              </Text>
             </View>
             <View style={styles.pointsItem}>
               <Feather name="monitor" size={24} color="#FF9A8A" />
-              <Text style={styles.pointsText}>Graphic design</Text>
+              <Text style={styles.pointsText}>
+                {profileLoading
+                  ? "Loading..."
+                  : profileError
+                  ? "Error"
+                  : profileData?.getUserProfile?.job || "Not set"}
+              </Text>
             </View>
           </View>
 
-          <View style={styles.savedTodosContainer}>
-            <Text style={styles.sectionTitle}>Saved Todos</Text>
-            {todosLoading ? (
-              <Text>Loading...</Text>
-            ) : todosError ? (
-              <Text>Error loading saved todos</Text>
-            ) : todosData?.getSavedTodos?.length === 0 ? (
-              <View style={styles.emptyStateContainer}>
-                <Text style={styles.emptyStateText}>
-                  You haven't saved any todos yet. Save some todos to see them
-                  here!
-                </Text>
-              </View>
-            ) : (
-              todosData?.getSavedTodos?.map((todo, index) => (
-                <View key={index} style={styles.todoItem}>
-                  <Text style={styles.todoText}>{todo}</Text>
+          <View style={styles.calendarSection}>
+            <View style={styles.weekDays}>
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                (day, i) => (
+                  <Text key={i} style={styles.weekDayText}>
+                    {day}
+                  </Text>
+                )
+              )}
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.datesRow}>
+                {dates.map((date, i) => (
                   <TouchableOpacity
-                    onPress={() => handleDelete(todo)}
-                    style={styles.deleteButton}
+                    key={i}
+                    style={[
+                      styles.dateBox,
+                      format(date, "yyyy-MM-dd") ===
+                        format(selectedDate, "yyyy-MM-dd") &&
+                        styles.selectedDate,
+                      hasTodoOnDate(date) && styles.hasTaskDate,
+                    ]}
+                    onPress={() => handleConfirm(date)}
                   >
-                    <Feather name="trash-2" size={20} color="#FF9A8A" />
+                    <Text
+                      style={[
+                        styles.dateNumber,
+                        format(date, "yyyy-MM-dd") ===
+                          format(new Date(), "yyyy-MM-dd") && styles.todayText,
+                        format(date, "yyyy-MM-dd") ===
+                          format(selectedDate, "yyyy-MM-dd") &&
+                          styles.selectedDateText,
+                      ]}
+                    >
+                      {format(date, "d")}
+                    </Text>
+                    {hasTodoOnDate(date) && (
+                      <View style={styles.taskIndicator} />
+                    )}
                   </TouchableOpacity>
-                </View>
-              ))
-            )}
+                ))}
+              </View>
+            </ScrollView>
           </View>
+
+          <View style={styles.savedTodosContainer}>
+            <Text style={styles.sectionTitle}>Today Task</Text>
+            {renderTodoList()}
+          </View>
+
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="date"
+            onConfirm={handleConfirm}
+            onCancel={hideDatePicker}
+            date={selectedDate}
+          />
 
           <View style={styles.placeToGoContainer}>
             <Text style={styles.placeToGoTitle}>Place To Go</Text>
@@ -261,7 +442,7 @@ const styles = StyleSheet.create({
   },
   placeToGoContainer: {
     marginHorizontal: 16,
-    marginBottom: 40
+    marginBottom: 40,
   },
   placeToGoTitle: {
     fontSize: 16,
@@ -303,46 +484,133 @@ const styles = StyleSheet.create({
   },
   savedTodosContainer: {
     marginHorizontal: 16,
-    marginBottom: 24,
+    marginTop: 24,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 12,
+    marginBottom: 16,
+    color: "#333",
   },
   todoItem: {
     backgroundColor: "#FFF5F3",
-    padding: 12,
-    borderRadius: 6,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#FF9A8A",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3.84,
+    elevation: 2,
   },
-  todoText: {
-    fontSize: 16,
-    color: "#333",
+  todoLeftSection: {
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
-  deleteButton: {
-    padding: 8,
+  checkboxContainer: {
+    marginRight: 12,
+  },
+  todoTextContainer: {
+    flex: 1,
+  },
+  todoText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 4,
+  },
+  todoDate: {
+    fontSize: 12,
+    color: "#666",
+  },
+  statusIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#8AFF8A",
+  },
+  calendarSection: {
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  weekDays: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  weekDayText: {
+    color: "#666",
+    fontSize: 12,
+    width: 35,
+    textAlign: "center",
+  },
+  datesScrollView: {
+    flexGrow: 0,
+  },
+  datesRow: {
+    flexDirection: "row",
+    paddingHorizontal: 8,
+  },
+  dateBox: {
+    width: 35,
+    height: 35,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 8,
+    marginHorizontal: 2,
+  },
+  selectedDate: {
+    backgroundColor: "#FF9A8A",
+  },
+  dateNumber: {
+    fontSize: 14,
+    color: "#333",
+  },
+  selectedDateText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+  },
+  todayText: {
+    color: "#FF9A8A",
+    fontWeight: "bold",
+  },
+  hasTaskDate: {
+    position: "relative",
+  },
+  taskIndicator: {
+    position: "absolute",
+    bottom: 4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#FF9A8A",
   },
   emptyStateContainer: {
     padding: 20,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF5F3",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#FF9A8A",
-    marginTop: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
   },
   emptyStateText: {
-    fontSize: 16,
     color: "#666",
-    textAlign: "center",
+    fontSize: 14,
+  },
+  deleteButton: {
+    padding: 8,
+  },
+  completedTodoText: {
+    textDecorationLine: "line-through",
+    color: "#999",
   },
 });
 

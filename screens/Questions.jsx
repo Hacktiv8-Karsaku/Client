@@ -27,6 +27,7 @@ const UPDATE_USER_PREFERENCES = gql`
     $preferredFoods: [String]
     $avoidedFoods: [String]
     $domicile: String
+    $date: String
   ) {
     updateUserPreferences(
       job: $job
@@ -35,6 +36,7 @@ const UPDATE_USER_PREFERENCES = gql`
       preferredFoods: $preferredFoods
       avoidedFoods: $avoidedFoods
       domicile: $domicile
+      date: $date
     ) {
       _id
       job
@@ -44,7 +46,9 @@ const UPDATE_USER_PREFERENCES = gql`
   }
 `;
 
-export default function Questions() {
+export default function Questions({ route }) {
+  console.log(route.params, "<<<route.params");
+
   const { setShouldAskQuestions } = useContext(AuthContext);
   const navigation = useNavigation();
 
@@ -53,6 +57,7 @@ export default function Questions() {
   const [preferredFoods, setPreferredFoods] = useState("");
   const [avoidedFoods, setAvoidedFoods] = useState("");
   const [domicile, setDomicile] = useState("");
+  const [date] = useState(route?.params?.date || new Date().toISOString());
 
   const [updatePreferences] = useMutation(UPDATE_USER_PREFERENCES);
 
@@ -65,6 +70,7 @@ export default function Questions() {
           preferredFoods: preferredFoods.split(",").map((item) => item.trim()),
           avoidedFoods: avoidedFoods.split(",").map((item) => item.trim()),
           domicile: domicile.trim(),
+          date,
         },
         refetchQueries: [{ query: GET_RECOMMENDATIONS }],
       });
@@ -165,6 +171,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#f5f5f5',
   },
   title: {
     fontSize: 28,
@@ -212,6 +219,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     overflow: "hidden",
     borderRadius: 12,
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginVertical: 8,
   },
   buttonGradient: {
     flexDirection: "row",
@@ -224,5 +235,52 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 18,
     marginRight: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  header: {
+    height: 200,
+    width: '100%',
+    position: 'relative',
+  },
+  headerGradient: {
+    height: '100%',
+    width: '100%',
+    position: 'absolute',
+  },
+  profileCard: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginTop: -50,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  todoCard: {
+    backgroundColor: 'white',
+    margin: 8,
+    padding: 16,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 2.84,
+    elevation: 3,
+  },
+  datePicker: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    marginTop: 8,
   },
 });
