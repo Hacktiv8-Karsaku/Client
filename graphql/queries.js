@@ -26,14 +26,7 @@ export const DELETE_TODO = gql`
 export const GET_RECOMMENDATIONS = gql`
   query GetUserProfile($date: String) {
     getUserProfile(date: $date) {
-      avoidedFoods
       _id
-      dailyActivities
-      domicile
-      createdAt
-      lastQuestionDate
-      preferredFoods
-      stressLevel
       recommendations {
         todoList
         places {
@@ -44,6 +37,11 @@ export const GET_RECOMMENDATIONS = gql`
             lat
             lng
           }
+          placeId
+          type
+          rating
+          uri
+          imageCategory
         }
         foodVideos {
           title
@@ -52,12 +50,6 @@ export const GET_RECOMMENDATIONS = gql`
           description
         }
       }
-      email
-      job
-      name
-      password
-      updatedAt
-      username
     }
   }
 `;
@@ -71,6 +63,32 @@ export const GET_USER_PROFILE = gql`
       email
       job
       domicile
+      recommendationsHistory {
+        date
+        recommendations {
+          todoList
+          places {
+            name
+            description
+            address
+            coordinates {
+              lat
+              lng
+            }
+            placeId
+            type
+            rating
+            uri
+            imageCategory
+          }
+          foodVideos {
+            title
+            url
+            thumbnail
+            description
+          }
+        }
+      }
     }
   }
 `;

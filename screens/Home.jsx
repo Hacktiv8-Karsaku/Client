@@ -33,14 +33,23 @@ const HomePage = () => {
 
   useEffect(() => {
     console.log("Fetching recommendations");
-    getRecommendations({ variables: { date: selectedDate.toISOString() } });
+    getRecommendations({ 
+      variables: { date: selectedDate.toISOString() },
+      onCompleted: (data) => {
+        console.log("Recommendations data:", data?.getUserProfile?.recommendations);
+      },
+      onError: (error) => {
+        console.error("Error fetching recommendations:", error);
+      }
+    });
   }, [selectedDate]);
 
   console.log({ loading, error, data }, "data");
 
-  const renderPlaceCard = ({ item }) => (
-    <DetailDestination place={item} isPreview={true} />
-  );
+  const renderPlaceCard = ({ item }) => {
+    console.log("Rendering place:", item); // Debug log
+    return <DetailDestination place={item} isPreview={true} />;
+  };
 
   const showDatePicker = () => {
     setDatePickerVisible(true);
@@ -63,6 +72,49 @@ const HomePage = () => {
       variables: { date: selectedDate.toISOString() },
       fetchPolicy: 'network-only' // Memastikan data diambil ulang dari server
     });
+  };
+
+  const renderTodoList = () => {
+    if (loading) {
+      return <ActivityIndicator size="large" color="#FF9A8A" />;
+    }
+
+    if (!todoList || todoList.length === 0) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <Text style={styles.emptyStateText}>No tasks for this date</Text>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("retakeQuestions", {
+                date: new Date(selectedDate).toISOString(),
+                onRetakeComplete: handleRetakeComplete,
+              })
+            }
+            style={[styles.retakeButton, styles.centerButton]}
+          >
+            <Text style={styles.retakeButtonText}>Generate Tasks</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <>
+        {todoList.slice(0, 3).map((todo, index) => (
+          <TouchableOpacity key={index} style={styles.card}>
+            <Text style={styles.cardText}>{todo}</Text>
+          </TouchableOpacity>
+        ))}
+        {todoList.length > 3 && (
+          <Text
+            style={styles.seeAll}
+            onPress={() => setTodoListVisible(true)}
+          >
+            See All ({todoList.length})
+          </Text>
+        )}
+      </>
+    );
   };
 
   return (
@@ -108,7 +160,7 @@ const HomePage = () => {
                 onPress={() =>
                   navigation.navigate("retakeQuestions", {
                     date: new Date(selectedDate).toISOString(),
-                    onRetakeComplete: handleRetakeComplete, // Menambahkan callback
+                    onRetakeComplete: handleRetakeComplete,
                   })
                 }
                 style={styles.retakeButton}
@@ -116,27 +168,7 @@ const HomePage = () => {
                 <Text style={styles.retakeButtonText}>Retake Questions</Text>
               </TouchableOpacity>
             </View>
-            {loading ? (
-              <ActivityIndicator size="large" color="#FF9A8A" />
-            ) : todoList?.length > 0 ? (
-              <>
-                {todoList?.slice(0, 3).map((todo, index) => (
-                  <TouchableOpacity key={index} style={styles.card}>
-                    <Text style={styles.cardText}>{todo}</Text>
-                  </TouchableOpacity>
-                ))}
-                <Text
-                  style={styles.seeAll}
-                  onPress={() => setTodoListVisible(true)}
-                >
-                  See All
-                </Text>
-              </>
-            ) : (
-              <View style={styles.emptyStateContainer}>
-                <Text style={styles.emptyStateText}>No Preview To Do</Text>
-              </View>
-            )}
+            {renderTodoList()}
           </View>
 
           {/* Places Cards Section - Horizontal Scroll */}
@@ -237,13 +269,13 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   section: {
-    marginBottom: 24,
+    marginVertical: 10,
+    paddingHorizontal: 15,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333333",
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
   },
   card: {
     padding: 16,
@@ -263,10 +295,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   retakeButton: {
     backgroundColor: "#FF9A8A",
@@ -284,6 +316,27 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 12,
     fontWeight: "bold",
+  },
+  placesList: {
+    paddingVertical: 10,
+  },
+  seeAllText: {
+    color: '#FF8080',
+    fontSize: 14,
+  },
+  emptyStateContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    margin: 10,
+  },
+  emptyStateText: {
+    color: '#666',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 10,
   },
 });
 

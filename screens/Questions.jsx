@@ -41,7 +41,30 @@ const UPDATE_USER_PREFERENCES = gql`
     ) {
       _id
       job
+      dailyActivities
       stressLevel
+      preferredFoods
+      avoidedFoods
+      domicile
+      recommendations {
+        todoList
+        places {
+          name
+          description
+          address
+          coordinates {
+            lat
+            lng
+          }
+          placeId
+        }
+        foodVideos {
+          title
+          url
+          thumbnail
+          description
+        }
+      }
       lastQuestionDate
     }
   }
@@ -64,33 +87,45 @@ export default function Questions({ route }) {
   const [updatePreferences] = useMutation(UPDATE_USER_PREFERENCES);
 
   const handleSubmit = async () => {
+    if (!activities || !domicile) {
+      Alert.alert("Error", "Please fill in all required fields");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data } = await updatePreferences({
         variables: {
-          dailyActivities: activities.split(",").map((item) => item.trim()),
-          stressLevel,
-          preferredFoods: preferredFoods.split(",").map((item) => item.trim()),
-          avoidedFoods: avoidedFoods.split(",").map((item) => item.trim()),
+          job: route?.params?.job || "",
+          dailyActivities: activities.split(",").map((item) => item.trim()).filter(Boolean),
+          stressLevel: parseInt(stressLevel),
+          preferredFoods: preferredFoods.split(",").map((item) => item.trim()).filter(Boolean),
+          avoidedFoods: avoidedFoods.split(",").map((item) => item.trim()).filter(Boolean),
           domicile: domicile.trim(),
-          date,
+          date: date,
         },
-        refetchQueries: [{ query: GET_RECOMMENDATIONS }],
+        refetchQueries: [
+          {
+            query: GET_RECOMMENDATIONS,
+            variables: { date }
+          }
+        ],
       });
 
       await SecureStore.setItemAsync("questions_completed", "true");
       setShouldAskQuestions(false);
 
-      if (route.name === "retakeQuestions") {
+      if (route?.params?.onRetakeComplete) {
+        route.params.onRetakeComplete();
         navigation.goBack();
-        if (route.params?.onRetakeComplete) {
-          route.params.onRetakeComplete();
-        }
       } else {
-        navigation.replace("HomePage");
+        navigation.navigate("Home");
       }
     } catch (error) {
-      Alert.alert("Error", error.message);
+      Alert.alert(
+        "Error",
+        error.message || "Failed to update preferences. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
