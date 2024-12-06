@@ -4,7 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import { onError } from "@apollo/client/link/error";
 
 const httpLink = createHttpLink({
-  uri: "https://rnmfp-139-228-111-126.a.free.pinggy.link",
+  uri: "https://rnsfy-139-228-111-126.a.free.pinggy.link",
 });
 
 const authLink = setContext(async (_, { headers }) => {

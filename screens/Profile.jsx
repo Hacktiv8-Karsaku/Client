@@ -17,6 +17,7 @@ import * as SecureStore from "expo-secure-store";
 import { Menu, Provider } from "react-native-paper";
 import { useQuery, useMutation, useLazyQuery } from "@apollo/client";
 import {
+  GET_SAVED_TODOS,
   DELETE_TODO,
   GET_USER_PROFILE,
   UPDATE_TODO_STATUS,
@@ -98,7 +99,7 @@ const ProfilePage = () => {
     error: todosError,
     data: todosData,
     refetch: refetchTodos,
-  } = useQuery(GET_USER_PROFILE, {
+  } = useQuery(GET_SAVED_TODOS, {
     variables: { date: new Date(selectedDate) },
   });
   console.log({ date: new Date(selectedDate) });
@@ -175,7 +176,7 @@ const ProfilePage = () => {
               variables: { todoItem },
               refetchQueries: [
                 {
-                  query: GET_USER_PROFILE,
+                  query: GET_SAVED_TODOS,
                 },
               ],
             });
@@ -227,7 +228,7 @@ const ProfilePage = () => {
           todoItem: todoItem,
           status: currentStatus === "pending" ? "success" : "pending",
         },
-        refetchQueries: [{ query: GET_USER_PROFILE }],
+        refetchQueries: [{ query: GET_SAVED_TODOS }],
       });
       await refetchTodos();
     } catch (error) {
@@ -237,35 +238,15 @@ const ProfilePage = () => {
 
   // Fungsi render todo list yang diperbarui
   const renderTodoList = () => {
-    if (profileLoading) return <Text>Loading...</Text>;
-    if (profileError) return <Text>Error loading recommendations</Text>;
+    if (todosLoading) return <Text>Loading...</Text>;
+    if (todosError) return <Text>Error loading saved todos</Text>;
 
-    // Format selectedDate to match server format (DD/MM/YYYY)
-    const formattedSelectedDate = format(selectedDate, "dd/MM/yyyy");
-    
-    // Get recommendations for selected date
-    const recommendations = profileData?.getUserProfile?.recommendationsHistory?.find(
-      (history) => {
-        console.log('Comparing dates:', {
-          historyDate: history.date,
-          selectedDate: formattedSelectedDate
-        });
-        return history.date === formattedSelectedDate;
-      }
-    )?.recommendations;
-
-    console.log('Selected Date:', formattedSelectedDate);
-    console.log('Available History:', profileData?.getUserProfile?.recommendationsHistory);
-    console.log('Found Recommendations:', recommendations);
-
-    const todosForSelectedDate = recommendations?.todoList || [];
+    const todosForSelectedDate = todosData?.getSavedTodos || [];
 
     if (todosForSelectedDate.length === 0) {
       return (
         <View style={styles.emptyStateContainer}>
-          <Text style={styles.emptyStateText}>
-            No tasks for {format(selectedDate, "dd MMM yyyy", { locale: id })}
-          </Text>
+          <Text style={styles.emptyStateText}>No tasks for this date</Text>
         </View>
       );
     }
@@ -275,7 +256,7 @@ const ProfilePage = () => {
         <View style={styles.todoLeftSection}>
           <TouchableOpacity
             style={styles.checkboxContainer}
-            onPress={() => handleToggleStatus(todo, todo.status)}
+            onPress={() => handleToggleStatus(todo.todoItem, todo.status)}
           >
             <Feather
               name={todo.status === "success" ? "check-square" : "square"}
@@ -290,15 +271,15 @@ const ProfilePage = () => {
                 todo.status === "success" && styles.completedTodoText,
               ]}
             >
-              {todo}
+              {todo.todoItem} - {todo.status}
             </Text>
             <Text style={styles.todoDate}>
-              {format(selectedDate, "dd MMM", { locale: id })}
+              {format(parseDate(todo.date), "dd MMM", { locale: id })}
             </Text>
           </View>
         </View>
         <TouchableOpacity
-          onPress={() => handleDelete(todo)}
+          onPress={() => handleDelete(todo.todoItem)}
           style={styles.deleteButton}
         >
           <Feather name="trash-2" size={20} color="#FF9A8A" />

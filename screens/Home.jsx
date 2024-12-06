@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   FlatList,
+  Alert,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { format } from "date-fns";
@@ -25,16 +26,19 @@ const HomePage = () => {
   const navigation = useNavigation();
   const [getRecommendations, { loading, error, data }] =
     useLazyQuery(GET_RECOMMENDATIONS);
-  const { todoList, places, foodVideos } =
-    data?.getUserProfile?.recommendations || {};
   const [todoListVisible, setTodoListVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
+  // Get recommendations for the selected date
+  const formattedSelectedDate = format(selectedDate, "dd/MM/yyyy");
+  const recommendations = data?.getUserProfile?.recommendations;
+  const { todoList, places, foodVideos } = recommendations || {};
+
   useEffect(() => {
     console.log("Fetching recommendations");
     getRecommendations({ 
-      variables: { date: selectedDate.toISOString() },
+      variables: { date: formattedSelectedDate },
       onCompleted: (data) => {
         console.log("Recommendations data:", data?.getUserProfile?.recommendations);
       },
@@ -61,7 +65,7 @@ const HomePage = () => {
 
   const handleConfirm = (date) => {
     setSelectedDate(date);
-    console.log(date, "<<<date");
+    Alert.alert(date, "<<<date");
 
     hideDatePicker();
   };
@@ -69,53 +73,62 @@ const HomePage = () => {
   const handleRetakeComplete = () => {
     // Refresh recommendations data
     getRecommendations({ 
-      variables: { date: selectedDate.toISOString() },
+      variables: { date: selectedDate },
       fetchPolicy: 'network-only' // Memastikan data diambil ulang dari server
     });
   };
 
   const renderTodoList = () => {
-    if (loading) {
-      return <ActivityIndicator size="large" color="#FF9A8A" />;
-    }
+    if (todosLoading) return <Text>Loading...</Text>;
+    if (todosError) return <Text>Error loading saved todos</Text>;
 
-    if (!todoList || todoList.length === 0) {
+    const todosForSelectedDate = todosData?.getSavedTodos || [];
+
+    if (todosForSelectedDate.length === 0) {
       return (
         <View style={styles.emptyStateContainer}>
           <Text style={styles.emptyStateText}>No tasks for this date</Text>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate("retakeQuestions", {
-                date: new Date(selectedDate).toISOString(),
-                onRetakeComplete: handleRetakeComplete,
-              })
-            }
-            style={[styles.retakeButton, styles.centerButton]}
-          >
-            <Text style={styles.retakeButtonText}>Generate Tasks</Text>
-          </TouchableOpacity>
         </View>
       );
     }
 
-    return (
-      <>
-        {todoList.slice(0, 3).map((todo, index) => (
-          <TouchableOpacity key={index} style={styles.card}>
-            <Text style={styles.cardText}>{todo}</Text>
-          </TouchableOpacity>
-        ))}
-        {todoList.length > 3 && (
-          <Text
-            style={styles.seeAll}
-            onPress={() => setTodoListVisible(true)}
+    return todosForSelectedDate.map((todo, index) => (
+      <View key={index} style={styles.todoItem}>
+        <View style={styles.todoLeftSection}>
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => handleToggleStatus(todo.todoItem, todo.status)}
           >
-            See All ({todoList.length})
-          </Text>
-        )}
-      </>
-    );
+            <Feather
+              name={todo.status === "success" ? "check-square" : "square"}
+              size={20}
+              color="#FF9A8A"
+            />
+          </TouchableOpacity>
+          <View style={styles.todoTextContainer}>
+            <Text
+              style={[
+                styles.todoText,
+                todo.status === "success" && styles.completedTodoText,
+              ]}
+            >
+              {todo.todoItem} - {todo.status}
+            </Text>
+            <Text style={styles.todoDate}>
+              {format(parseDate(todo.date), "dd MM yyyy", { locale: id })}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          onPress={() => handleDelete(todo.todoItem)}
+          style={styles.deleteButton}
+        >
+          <Feather name="trash-2" size={20} color="#FF9A8A" />
+        </TouchableOpacity>
+      </View>
+    ));
   };
+
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -159,7 +172,7 @@ const HomePage = () => {
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate("retakeQuestions", {
-                    date: new Date(selectedDate).toISOString(),
+                    date: formattedSelectedDate,
                     onRetakeComplete: handleRetakeComplete,
                   })
                 }
