@@ -5,13 +5,20 @@ import { AuthContext } from "./context/AuthContext";
 import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { ActivityIndicator, View } from "react-native";
+import SplashScreen from './components/SplashScreen';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [shouldAskQuestions, setShouldAskQuestions] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
+    // Handle splash screen timing
+    setTimeout(() => {
+      setShowSplash(false);
+    }, 2500); // 2 seconds
+
     async function checkToken() {
       try {
         const token = await SecureStore.getItemAsync("access_token");
@@ -34,6 +41,10 @@ export default function App() {
     }
     checkToken();
   }, []);
+
+  if (showSplash) {
+    return <SplashScreen />;
+  }
 
   if (loading) {
     return (
