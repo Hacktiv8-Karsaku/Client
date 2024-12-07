@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   FlatList,
   Alert,
+  Linking,
+  Image,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { format } from "date-fns";
@@ -22,6 +24,7 @@ import VideoRecommendations from "../components/VideoRecommendations";
 import { Feather } from "@expo/vector-icons";
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { GOOGLE_MAPS_API_KEY } from "@env";
 
 const HomePage = () => {
   const navigation = useNavigation();
@@ -114,6 +117,26 @@ const HomePage = () => {
     };
   }, [places, userLocation, mapRegion]);
 
+  const openInGoogleMaps = (place) => {
+    const { coordinates, name } = place;
+    const label = encodeURIComponent(name);
+    
+    const primaryUrl = `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}&query_place_id=${place.placeId}`;
+    const fallbackUrl = `https://www.google.com/maps/search/${label}/@${coordinates.lat},${coordinates.lng},15z`;
+
+    Linking.canOpenURL(primaryUrl)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(primaryUrl);
+        }
+        return Linking.openURL(fallbackUrl);
+      })
+      .catch((err) => {
+        console.error('Error opening Google Maps:', err);
+        Linking.openURL(`https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`);
+      });
+  };
+
   const renderTodoList = () => {
     if (loading) return <Text>Loading...</Text>;
     if (error) return <Text>Error loading todos</Text>;
@@ -175,8 +198,8 @@ const HomePage = () => {
     );
   };
 
-  const renderPlaceCard = ({ item }) => (
-    <DetailDestination place={item} isPreview={true} />
+  const renderPlaceItem = ({ item }) => (
+    <DetailDestination place={item} />
   );
 
   const renderMap = () => {
@@ -205,6 +228,7 @@ const HomePage = () => {
               title={place.name}
               description={place.description}
               pinColor="#FF9A8A"
+              onCalloutPress={() => openInGoogleMaps(place)}
             />
           ))}
         </MapView>
@@ -262,8 +286,8 @@ const HomePage = () => {
               <>
                 <FlatList
                   data={places}
-                  renderItem={renderPlaceCard}
-                  keyExtractor={(item, index) => index.toString()}
+                  renderItem={renderPlaceItem}
+                  keyExtractor={(item) => item.placeId}
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.horizontalScrollContainer}
@@ -445,6 +469,36 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
+  },
+  placeItem: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    marginBottom: 12,
+    overflow: 'hidden',
+    width: 300,
+    marginRight: 12,
+  },
+  placeImage: {
+    width: '100%',
+    height: 200,
+  },
+  placeInfo: {
+    padding: 16,
+  },
+  placeName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333333',
+    marginBottom: 4,
+  },
+  placeDescription: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  placeRating: {
+    fontSize: 14,
+    color: '#FF9A8A',
   },
 });
 

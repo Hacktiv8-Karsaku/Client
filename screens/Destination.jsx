@@ -17,18 +17,18 @@ const Destination = () => {
   const domicile = userData?.getUserProfile?.domicile;
 
   const initialMapRegion = React.useMemo(() => {
-    if (!nearbyPlaces.length || !mapRegion) return mapRegion;
+    if (!nearbyPlaces.length) return null;
 
     const allCoordinates = nearbyPlaces.map(place => ({
-      latitude: place.coordinates.lat,
-      longitude: place.coordinates.lng,
+      latitude: place.coordinates?.lat || parseFloat(place.latitude),
+      longitude: place.coordinates?.lng || parseFloat(place.longitude),
     }));
 
     if (preferredLocation) {
       allCoordinates.push(preferredLocation);
     }
 
-    if (allCoordinates.length === 0) return mapRegion;
+    if (allCoordinates.length === 0) return null;
 
     let minLat = Math.min(...allCoordinates.map(coord => coord.latitude));
     let maxLat = Math.max(...allCoordinates.map(coord => coord.latitude));
@@ -42,7 +42,7 @@ const Destination = () => {
       latitudeDelta: (maxLat - minLat) + padding,
       longitudeDelta: (maxLng - minLng) + padding,
     };
-  }, [nearbyPlaces, preferredLocation, mapRegion]);
+  }, [nearbyPlaces, preferredLocation]);
 
   const fetchNearbyPlaces = async (latitude, longitude) => {
     try {
@@ -131,18 +131,20 @@ const Destination = () => {
   const openInGoogleMaps = (place) => {
     const { coordinates, name } = place;
     const label = encodeURIComponent(name);
-    const url = `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}&query_place_id=${place.placeId}`;
-    
-    Linking.canOpenURL(url)
+    const primaryUrl = `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}&query_place_id=${place.placeId}`;
+    const fallbackUrl = `https://www.google.com/maps/search/${label}/@${coordinates.lat},${coordinates.lng},15z`;
+
+    Linking.canOpenURL(primaryUrl)
       .then((supported) => {
         if (supported) {
-          return Linking.openURL(url);
-        } else {
-          const browserUrl = `https://www.google.com/maps/search/${label}/@${coordinates.lat},${coordinates.lng},15z`;
-          return Linking.openURL(browserUrl);
+          return Linking.openURL(primaryUrl);
         }
+        return Linking.openURL(fallbackUrl);
       })
-      .catch((err) => console.error('Error opening Google Maps:', err));
+      .catch((err) => {
+        console.error('Error opening Google Maps:', err);
+        Linking.openURL(`https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`);
+      });
   };
 
   const renderPlaceItem = ({ item }) => {
@@ -182,7 +184,8 @@ const Destination = () => {
         <MapView
           provider={PROVIDER_GOOGLE}
           style={styles.map}
-          initialRegion={initialMapRegion}
+          region={mapRegion}
+          initialRegion={mapRegion}
           showsUserLocation={true}
           showsMyLocationButton={true}
           showsCompass={true}
@@ -192,7 +195,7 @@ const Destination = () => {
         >
           {nearbyPlaces.map((place, index) => (
             <Marker
-              key={place.placeId || `place-${index}`}
+              key={`${place.placeId}-${index}`}
               coordinate={{
                 latitude: place.coordinates?.lat || parseFloat(place.latitude),
                 longitude: place.coordinates?.lng || parseFloat(place.longitude),
