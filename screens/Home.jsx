@@ -53,7 +53,10 @@ const HomePage = () => {
           return;
         }
 
-        const location = await Location.getCurrentPositionAsync({});
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        
         const currentLocation = {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,

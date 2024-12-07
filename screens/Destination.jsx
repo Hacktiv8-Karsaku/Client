@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator } from "react-nativ
 import DetailDestination from "../components/DetailDestination";
 import MapView, { PROVIDER_GOOGLE, Marker } from "react-native-maps";
 import { useQuery } from "@apollo/client";
-import { GET_RECOMMENDATIONS } from "../graphql/queries";
+import { GET_USER_PROFILE } from "../graphql/queries";
 import Geocoding from 'react-native-geocoding';
 import { GOOGLE_MAPS_API_KEY } from "@env";
 
@@ -14,8 +14,8 @@ const Destination = () => {
   const [preferredLocation, setPreferredLocation] = useState(null);
   const [nearbyPlaces, setNearbyPlaces] = useState([]);
 
-  const { data: recommendationsData, loading: queryLoading } = useQuery(GET_RECOMMENDATIONS);
-  const domicile = recommendationsData?.getUserProfile?.domicile;
+  const { data: userData, loading: queryLoading } = useQuery(GET_USER_PROFILE);
+  const domicile = userData?.getUserProfile?.domicile;
 
   const fetchNearbyPlaces = async (latitude, longitude) => {
     try {
@@ -47,7 +47,11 @@ const Destination = () => {
 
   useEffect(() => {
     const getPreferredLocation = async () => {
-      if (!domicile) return;
+      if (!domicile) {
+        setError("No domicile location found in your profile");
+        setLoading(false);
+        return;
+      }
 
       try {
         Geocoding.init(GOOGLE_MAPS_API_KEY);
@@ -71,7 +75,7 @@ const Destination = () => {
         await fetchNearbyPlaces(lat, lng);
       } catch (err) {
         console.error('Geocoding error:', err);
-        setError("Could not find the location you specified.");
+        setError("Could not find your domicile location.");
       } finally {
         setLoading(false);
       }
@@ -95,7 +99,7 @@ const Destination = () => {
           {preferredLocation && (
             <Marker
               coordinate={preferredLocation}
-              title="Preferred Location"
+              title="Your Location"
               description={domicile}
               pinColor="#4285F4"
             />
@@ -103,7 +107,7 @@ const Destination = () => {
 
           {nearbyPlaces.map((place, index) => (
             <Marker
-              key={index}
+              key={place.placeId || index}
               coordinate={{
                 latitude: place.coordinates.lat,
                 longitude: place.coordinates.lng,
@@ -111,6 +115,9 @@ const Destination = () => {
               title={place.name}
               description={place.description}
               pinColor="#FF9A8A"
+              onPress={() => {
+                console.log('Place pressed:', place.name);
+              }}
             />
           ))}
         </MapView>
