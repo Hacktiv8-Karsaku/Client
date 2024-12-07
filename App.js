@@ -5,7 +5,11 @@ import { AuthContext } from "./context/AuthContext";
 import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { ActivityIndicator, View } from "react-native";
-import SplashScreen from './components/SplashScreen';
+import CustomSplashScreen from './components/SplashScreen';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -14,36 +18,48 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    // Handle splash screen timing
-    setTimeout(() => {
-      setShowSplash(false);
-    }, 2500); // 2 seconds
-
-    async function checkToken() {
+    async function prepare() {
       try {
-        const token = await SecureStore.getItemAsync("access_token");
-        const questionStatus = await SecureStore.getItemAsync("questions_completed");
+        // Pre-load fonts, make API calls, etc.
+        await checkToken();
         
-        if (token) {
-          setIsSignedIn(true);
-          setShouldAskQuestions(questionStatus !== "true");
-        } else {
-          setIsSignedIn(false);
-          setShouldAskQuestions(true);
-        }
-      } catch (error) {
-        console.error("Error checking auth state:", error);
-        setIsSignedIn(false);
-        setShouldAskQuestions(true);
+        // Artificial delay for a smoother splash screen
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      } catch (e) {
+        console.warn(e);
       } finally {
-        setLoading(false);
+        // Tell the application to render
+        setShowSplash(false);
+        await SplashScreen.hideAsync();
       }
     }
-    checkToken();
+
+    prepare();
   }, []);
 
+  async function checkToken() {
+    try {
+      const token = await SecureStore.getItemAsync("access_token");
+      const questionStatus = await SecureStore.getItemAsync("questions_completed");
+      
+      if (token) {
+        setIsSignedIn(true);
+        setShouldAskQuestions(questionStatus !== "true");
+      } else {
+        setIsSignedIn(false);
+        setShouldAskQuestions(true);
+      }
+    } catch (error) {
+      console.error("Error checking auth state:", error);
+      setIsSignedIn(false);
+      setShouldAskQuestions(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   if (showSplash) {
-    return <SplashScreen />;
+    return <CustomSplashScreen />;
   }
 
   if (loading) {

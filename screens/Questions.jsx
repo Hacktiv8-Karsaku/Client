@@ -119,10 +119,7 @@ export default function Questions({ route }) {
         route.params.onRetakeComplete();
         navigation.goBack();
       } else {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Home' }],
-        });
+        setShouldAskQuestions(false);
       }
     } catch (error) {
       Alert.alert(

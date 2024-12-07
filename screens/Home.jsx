@@ -86,6 +86,34 @@ const HomePage = () => {
     hideDatePicker();
   };
 
+  const initialMapRegion = React.useMemo(() => {
+    if (!places || !mapRegion) return mapRegion;
+
+    const allCoordinates = places.map(place => ({
+      latitude: place.coordinates?.lat || parseFloat(place.latitude),
+      longitude: place.coordinates?.lng || parseFloat(place.longitude),
+    })) || [];
+
+    if (userLocation) {
+      allCoordinates.push(userLocation);
+    }
+
+    if (allCoordinates.length === 0) return mapRegion;
+
+    let minLat = Math.min(...allCoordinates.map(coord => coord.latitude));
+    let maxLat = Math.max(...allCoordinates.map(coord => coord.latitude));
+    let minLng = Math.min(...allCoordinates.map(coord => coord.longitude));
+    let maxLng = Math.max(...allCoordinates.map(coord => coord.longitude));
+
+    const padding = 0.05;
+    return {
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta: (maxLat - minLat) + padding,
+      longitudeDelta: (maxLng - minLng) + padding,
+    };
+  }, [places, userLocation, mapRegion]);
+
   const renderTodoList = () => {
     if (loading) return <Text>Loading...</Text>;
     if (error) return <Text>Error loading todos</Text>;
@@ -154,56 +182,22 @@ const HomePage = () => {
   const renderMap = () => {
     if (!mapRegion) return <ActivityIndicator size="large" color="#FF9A8A" />;
 
-    const allCoordinates = places?.map(place => ({
-      latitude: place.coordinates?.lat || parseFloat(place.latitude),
-      longitude: place.coordinates?.lng || parseFloat(place.longitude),
-    })) || [];
-
-    if (userLocation) {
-      allCoordinates.push(userLocation);
-    }
-
-    const calcRegion = () => {
-      if (allCoordinates.length === 0) return mapRegion;
-
-      let minLat = Math.min(...allCoordinates.map(coord => coord.latitude));
-      let maxLat = Math.max(...allCoordinates.map(coord => coord.latitude));
-      let minLng = Math.min(...allCoordinates.map(coord => coord.longitude));
-      let maxLng = Math.max(...allCoordinates.map(coord => coord.longitude));
-
-      const padding = 0.05;
-      return {
-        latitude: (minLat + maxLat) / 2,
-        longitude: (minLng + maxLng) / 2,
-        latitudeDelta: (maxLat - minLat) + padding,
-        longitudeDelta: (maxLng - minLng) + padding,
-      };
-    };
-
     return (
       <View style={styles.mapContainer}>
         <MapView
           provider={PROVIDER_GOOGLE}
           style={styles.map}
-          initialRegion={mapRegion}
-          region={calcRegion()}
-          showsUserLocation={false}
+          initialRegion={initialMapRegion}
+          showsUserLocation={true}
+          showsMyLocationButton={true}
+          showsCompass={true}
+          followsUserLocation={true}
+          userLocationAnnotationTitle="You are here"
+          userLocationCalloutEnabled={true}
         >
-          {userLocation && (
-            <Marker
-              coordinate={{
-                latitude: userLocation.latitude,
-                longitude: userLocation.longitude,
-              }}
-              title="You are here"
-              description="Your current location"
-              pinColor="#4285F4"
-            />
-          )}
-
           {places?.map((place, index) => (
             <Marker
-              key={index}
+              key={`place-${index}`}
               coordinate={{
                 latitude: place.coordinates?.lat || parseFloat(place.latitude),
                 longitude: place.coordinates?.lng || parseFloat(place.longitude),

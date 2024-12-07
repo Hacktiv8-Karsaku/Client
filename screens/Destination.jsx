@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from "react-native";
-import DetailDestination from "../components/DetailDestination";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Linking, TouchableOpacity, Image } from "react-native";
 import MapView, { PROVIDER_GOOGLE, Marker } from "react-native-maps";
 import { useQuery } from "@apollo/client";
 import { GET_USER_PROFILE } from "../graphql/queries";
@@ -17,28 +16,73 @@ const Destination = () => {
   const { data: userData, loading: queryLoading } = useQuery(GET_USER_PROFILE);
   const domicile = userData?.getUserProfile?.domicile;
 
+  const initialMapRegion = React.useMemo(() => {
+    if (!nearbyPlaces.length || !mapRegion) return mapRegion;
+
+    const allCoordinates = nearbyPlaces.map(place => ({
+      latitude: place.coordinates.lat,
+      longitude: place.coordinates.lng,
+    }));
+
+    if (preferredLocation) {
+      allCoordinates.push(preferredLocation);
+    }
+
+    if (allCoordinates.length === 0) return mapRegion;
+
+    let minLat = Math.min(...allCoordinates.map(coord => coord.latitude));
+    let maxLat = Math.max(...allCoordinates.map(coord => coord.latitude));
+    let minLng = Math.min(...allCoordinates.map(coord => coord.longitude));
+    let maxLng = Math.max(...allCoordinates.map(coord => coord.longitude));
+
+    const padding = 0.05;
+    return {
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta: (maxLat - minLat) + padding,
+      longitudeDelta: (maxLng - minLng) + padding,
+    };
+  }, [nearbyPlaces, preferredLocation, mapRegion]);
+
   const fetchNearbyPlaces = async (latitude, longitude) => {
     try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=5000&type=tourist_attraction&keyword=healing&key=${GOOGLE_MAPS_API_KEY}`
-      );
-      const data = await response.json();
+      const placeTypes = ['tourist_attraction', 'park', 'spa', 'cafe', 'restaurant'];
+      const keywords = ['healing', 'wellness', 'relaxation', 'meditation'];
+      
+      const allPlaces = [];
+      
+      for (const type of placeTypes) {
+        for (const keyword of keywords) {
+          const response = await fetch(
+            `https://maps.googleapis.com/maps/api/place/nearbysearch/json?` +
+            `location=${latitude},${longitude}&radius=10000&type=${type}` +
+            `&keyword=${keyword}&key=${GOOGLE_MAPS_API_KEY}`
+          );
+          const data = await response.json();
 
-      if (data.results) {
-        const places = data.results.map(place => ({
-          placeId: place.place_id,
-          name: place.name,
-          description: place.vicinity,
-          rating: place.rating?.toString() || "4.0",
-          coordinates: {
-            lat: place.geometry.location.lat,
-            lng: place.geometry.location.lng
-          },
-          type: place.types[0]
-        }));
-
-        setNearbyPlaces(places);
+          if (data.results) {
+            const places = data.results.map(place => ({
+              placeId: place.place_id,
+              name: place.name,
+              description: place.vicinity,
+              rating: place.rating?.toString() || "4.0",
+              coordinates: {
+                lat: place.geometry.location.lat,
+                lng: place.geometry.location.lng
+              },
+              type: place.types[0],
+              photos: place.photos
+            }));
+            allPlaces.push(...places);
+          }
+        }
       }
+
+      const uniquePlaces = Array.from(
+        new Map(allPlaces.map(place => [place.placeId, place])).values()
+      );
+
+      setNearbyPlaces(uniquePlaces);
     } catch (err) {
       console.error('Error fetching nearby places:', err);
       setError("Could not fetch nearby places");
@@ -84,6 +128,52 @@ const Destination = () => {
     getPreferredLocation();
   }, [domicile]);
 
+  const openInGoogleMaps = (place) => {
+    const { coordinates, name } = place;
+    const label = encodeURIComponent(name);
+    const url = `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}&query_place_id=${place.placeId}`;
+    
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(url);
+        } else {
+          const browserUrl = `https://www.google.com/maps/search/${label}/@${coordinates.lat},${coordinates.lng},15z`;
+          return Linking.openURL(browserUrl);
+        }
+      })
+      .catch((err) => console.error('Error opening Google Maps:', err));
+  };
+
+  const renderPlaceItem = ({ item }) => {
+    const photoReference = item.photos?.[0]?.photo_reference;
+    const photoUrl = photoReference
+      ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoReference}&key=${GOOGLE_MAPS_API_KEY}`
+      : null;
+
+    return (
+      <TouchableOpacity 
+        style={styles.placeItem} 
+        onPress={() => openInGoogleMaps(item)}
+      >
+        {photoUrl && (
+          <Image 
+            source={{ uri: photoUrl }} 
+            style={styles.placeImage}
+            resizeMode="cover"
+          />
+        )}
+        <View style={styles.placeInfo}>
+          <Text style={styles.placeName}>{item.name}</Text>
+          <Text style={styles.placeDescription}>{item.description}</Text>
+          {item.rating && (
+            <Text style={styles.placeRating}>Rating: {item.rating} ⭐</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderMap = () => {
     if (!mapRegion) return <ActivityIndicator size="large" color="#FF9A8A" />;
 
@@ -92,32 +182,25 @@ const Destination = () => {
         <MapView
           provider={PROVIDER_GOOGLE}
           style={styles.map}
-          initialRegion={mapRegion}
-          region={mapRegion}
-          showsUserLocation={false}
+          initialRegion={initialMapRegion}
+          showsUserLocation={true}
+          showsMyLocationButton={true}
+          showsCompass={true}
+          followsUserLocation={true}
+          userLocationAnnotationTitle="You are here"
+          userLocationCalloutEnabled={true}
         >
-          {preferredLocation && (
-            <Marker
-              coordinate={preferredLocation}
-              title="Your Location"
-              description={domicile}
-              pinColor="#4285F4"
-            />
-          )}
-
           {nearbyPlaces.map((place, index) => (
             <Marker
-              key={place.placeId || index}
+              key={place.placeId || `place-${index}`}
               coordinate={{
-                latitude: place.coordinates.lat,
-                longitude: place.coordinates.lng,
+                latitude: place.coordinates?.lat || parseFloat(place.latitude),
+                longitude: place.coordinates?.lng || parseFloat(place.longitude),
               }}
               title={place.name}
               description={place.description}
               pinColor="#FF9A8A"
-              onPress={() => {
-                console.log('Place pressed:', place.name);
-              }}
+              onCalloutPress={() => openInGoogleMaps(place)}
             />
           ))}
         </MapView>
@@ -141,9 +224,7 @@ const Destination = () => {
       <FlatList
         data={nearbyPlaces}
         keyExtractor={(item) => item.placeId}
-        renderItem={({ item }) => (
-          <DetailDestination place={item} />
-        )}
+        renderItem={renderPlaceItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
@@ -158,7 +239,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   mapContainer: {
-    height: 200,
+    height: 300,
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 16,
@@ -180,7 +261,35 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  }
+  },
+  placeItem: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  placeImage: {
+    width: '100%',
+    height: 200,
+  },
+  placeInfo: {
+    padding: 16,
+  },
+  placeName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333333',
+    marginBottom: 4,
+  },
+  placeDescription: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  placeRating: {
+    fontSize: 14,
+    color: '#FF9A8A',
+  },
 });
 
 export default Destination;
