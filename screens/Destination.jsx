@@ -1,103 +1,142 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from "react-native";
-import * as Location from "expo-location";
-import { GOOGLE_MAPS_API_KEY } from "@env";
 import DetailDestination from "../components/DetailDestination";
+import MapView, { PROVIDER_GOOGLE, Marker } from "react-native-maps";
+import { useQuery } from "@apollo/client";
+import { GET_RECOMMENDATIONS } from "../graphql/queries";
+import Geocoding from 'react-native-geocoding';
+import { GOOGLE_MAPS_API_KEY } from "@env";
 
 const Destination = () => {
-  const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [location, setLocation] = useState(null);
+  const [mapRegion, setMapRegion] = useState(null);
+  const [preferredLocation, setPreferredLocation] = useState(null);
+  const [nearbyPlaces, setNearbyPlaces] = useState([]);
+
+  const { data: recommendationsData, loading: queryLoading } = useQuery(GET_RECOMMENDATIONS);
+  const domicile = recommendationsData?.getUserProfile?.domicile;
+
+  const fetchNearbyPlaces = async (latitude, longitude) => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=5000&type=tourist_attraction&keyword=healing&key=${GOOGLE_MAPS_API_KEY}`
+      );
+      const data = await response.json();
+
+      if (data.results) {
+        const places = data.results.map(place => ({
+          placeId: place.place_id,
+          name: place.name,
+          description: place.vicinity,
+          rating: place.rating?.toString() || "4.0",
+          coordinates: {
+            lat: place.geometry.location.lat,
+            lng: place.geometry.location.lng
+          },
+          type: place.types[0]
+        }));
+
+        setNearbyPlaces(places);
+      }
+    } catch (err) {
+      console.error('Error fetching nearby places:', err);
+      setError("Could not fetch nearby places");
+    }
+  };
 
   useEffect(() => {
-    // Request location permission
-    const getLocationPermission = async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setError("Permission to access location was denied.");
+    const getPreferredLocation = async () => {
+      if (!domicile) return;
+
+      try {
+        Geocoding.init(GOOGLE_MAPS_API_KEY);
+        const response = await Geocoding.from(domicile);
+        const { lat, lng } = response.results[0].geometry.location;
+
+        const location = {
+          latitude: lat,
+          longitude: lng,
+        };
+
+        const region = {
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        };
+
+        setPreferredLocation(location);
+        setMapRegion(region);
+        await fetchNearbyPlaces(lat, lng);
+      } catch (err) {
+        console.error('Geocoding error:', err);
+        setError("Could not find the location you specified.");
+      } finally {
         setLoading(false);
-        return;
       }
-
-      // Start watching the user's location with distance interval of 100 meters
-      const locationSubscription = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, distanceInterval: 100 }, // Update location every 100 meters
-        (newLocation) => {
-          setLocation(newLocation.coords);
-        }
-      );
-
-      return locationSubscription;
     };
 
-    getLocationPermission();
+    getPreferredLocation();
+  }, [domicile]);
 
-    // Cleanup function to stop watching location when the component unmounts
-    
-  }, []);
+  const renderMap = () => {
+    if (!mapRegion) return <ActivityIndicator size="large" color="#FF9A8A" />;
 
-  useEffect(() => {
-    // Fetch places when the location changes
-    if (location) {
-      const fetchPlacesAround = async () => {
-        setLoading(true);
-        try {
-          const { latitude, longitude } = location;
-          const response = await fetch(
-            `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=1500&type=tourist_attraction&key=${GOOGLE_MAPS_API_KEY}`
-          );
-          const data = await response.json();
-
-          if (data.results) {
-            // Map the API response to fit the DetailDestination component
-            const formattedPlaces = data.results.map((place) => ({
-              id: place.place_id,
-              name: place.name,
-              rating: place.rating || "Not available",
-              description: place.vicinity || "No description available",
-              placeId: place.place_id, // To fetch details and photos
-            }));
-            setPlaces(formattedPlaces);
-          } else {
-            setError("No places found.");
-          }
-        } catch (err) {
-          setError("Failed to fetch places.");
-          console.error(err);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchPlacesAround();
-    }
-  }, [location]); // Refetch when the location changes
-
-  if (loading) {
     return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Loading destinations...</Text>
+      <View style={styles.mapContainer}>
+        <MapView
+          provider={PROVIDER_GOOGLE}
+          style={styles.map}
+          initialRegion={mapRegion}
+          region={mapRegion}
+          showsUserLocation={false}
+        >
+          {preferredLocation && (
+            <Marker
+              coordinate={preferredLocation}
+              title="Preferred Location"
+              description={domicile}
+              pinColor="#4285F4"
+            />
+          )}
+
+          {nearbyPlaces.map((place, index) => (
+            <Marker
+              key={index}
+              coordinate={{
+                latitude: place.coordinates.lat,
+                longitude: place.coordinates.lng,
+              }}
+              title={place.name}
+              description={place.description}
+              pinColor="#FF9A8A"
+            />
+          ))}
+        </MapView>
       </View>
     );
-  }
+  };
 
-  if (error) {
+  if (loading || queryLoading) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#FF9A8A" />
+        <Text>Loading destinations...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Recommended Destinations Nearby</Text>
+      {renderMap()}
+      <Text style={styles.title}>Nearby Healing Places</Text>
       <FlatList
-        data={places}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <DetailDestination place={item} />}
+        data={nearbyPlaces}
+        keyExtractor={(item) => item.placeId}
+        renderItem={({ item }) => (
+          <DetailDestination place={item} />
+        )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />
@@ -110,6 +149,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
     padding: 16,
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  map: {
+    width: '100%',
+    height: '100%',
   },
   title: {
     fontSize: 20,
@@ -124,16 +173,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorText: {
-    color: "red",
-    fontSize: 16,
-  },
+  }
 });
 
 export default Destination;

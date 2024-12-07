@@ -39,6 +39,21 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
   const { data: savedTodosData, refetch } = useQuery(GET_SAVED_TODOS, {
     variables: { date },
   });
+  
+  const { data: recommendationsData } = useQuery(GET_RECOMMENDATIONS, {
+    variables: { date },
+  });
+
+  const savedTodos = savedTodosData?.getSavedTodos || [];
+  const recommendationHistory = recommendationsData?.getUserProfile?.recommendationsHistory || [];
+  const currentDateRecommendations = recommendationHistory.find(
+    (history) => history.date === date
+  )?.recommendations?.todoList || [];
+
+  // Use recommendations if available, otherwise use passed todoList
+  const displayTodoList = currentDateRecommendations.length > 0 ? 
+    currentDateRecommendations : todoList;
+
   const [saveTodo] = useMutation(SAVE_TODO);
   const [regenerateTodos, { loading: regenerating }] =
     useMutation(REGENERATE_TODOS);
@@ -46,8 +61,6 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [localTodoList, setLocalTodoList] = useState([]);
-
-  const savedTodos = savedTodosData?.getSavedTodos || [];
 
   useEffect(() => {
     if (todoList && todoList.length > 0) {
@@ -83,7 +96,12 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
     setLoadingTodo(todo);
     setShowSuccess(false);
     try {
-      console.log(date, "<<<date");
+      // Check if todo already exists for this date
+      const existingTodo = savedTodos.find(t => t.todoItem === todo);
+      if (existingTodo) {
+        Alert.alert("Todo already exists for this date");
+        return;
+      }
 
       await saveTodo({
         variables: { todoItem: todo, date: date },

@@ -15,180 +15,250 @@ import { id } from "date-fns/locale";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery, useLazyQuery } from "@apollo/client";
-import MapDisplay from "../components/MapView";
-import { GET_RECOMMENDATIONS } from "../graphql/queries";
+import { GET_RECOMMENDATIONS, GET_SAVED_TODOS } from "../graphql/queries";
 import TodoList from "../components/TodoList";
 import DetailDestination from "../components/DetailDestination";
 import VideoRecommendations from "../components/VideoRecommendations";
 import { Feather } from "@expo/vector-icons";
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 const HomePage = () => {
   const navigation = useNavigation();
-  const [getRecommendations, { loading, error, data }] =
-    useLazyQuery(GET_RECOMMENDATIONS);
-  const [todoListVisible, setTodoListVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
-
-  // Get recommendations for the selected date
+  const [todoListVisible, setTodoListVisible] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [mapRegion, setMapRegion] = useState(null);
+  
   const formattedSelectedDate = format(selectedDate, "dd/MM/yyyy");
-  const recommendations = data?.getUserProfile?.recommendations;
-  const { todoList, places, foodVideos } = recommendations || {};
+
+  const [getRecommendations, { loading, error, data }] = useLazyQuery(GET_RECOMMENDATIONS);
+  const { data: todosData } = useQuery(GET_SAVED_TODOS, {
+    variables: { date: formattedSelectedDate },
+  });
 
   useEffect(() => {
-    console.log("Fetching recommendations");
     getRecommendations({ 
-      variables: { date: formattedSelectedDate },
-      onCompleted: (data) => {
-        console.log("Recommendations data:", data?.getUserProfile?.recommendations);
-      },
-      onError: (error) => {
-        console.error("Error fetching recommendations:", error);
-      }
+      variables: { date: formattedSelectedDate }
     });
   }, [selectedDate]);
 
-  console.log({ loading, error, data }, "data");
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Please allow location access to see nearby places.');
+          return;
+        }
 
-  const renderPlaceCard = ({ item }) => {
-    console.log("Rendering place:", item); // Debug log
-    return <DetailDestination place={item} isPreview={true} />;
-  };
+        const location = await Location.getCurrentPositionAsync({});
+        const currentLocation = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        };
+        
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        setMapRegion(currentLocation);
+      } catch (error) {
+        console.error('Error getting location:', error);
+        Alert.alert('Error', 'Could not get your current location');
+      }
+    })();
+  }, []);
 
-  const showDatePicker = () => {
-    setDatePickerVisible(true);
-  };
+  const recommendations = data?.getUserProfile?.recommendations;
+  const { todoList, places, foodVideos } = recommendations || {};
 
-  const hideDatePicker = () => {
-    setDatePickerVisible(false);
-  };
-
+  const showDatePicker = () => setDatePickerVisible(true);
+  const hideDatePicker = () => setDatePickerVisible(false);
   const handleConfirm = (date) => {
     setSelectedDate(date);
-    Alert.alert(date, "<<<date");
-
     hideDatePicker();
   };
 
-  const handleRetakeComplete = () => {
-    // Refresh recommendations data
-    getRecommendations({ 
-      variables: { date: selectedDate },
-      fetchPolicy: 'network-only' // Memastikan data diambil ulang dari server
-    });
-  };
-
   const renderTodoList = () => {
-    if (todosLoading) return <Text>Loading...</Text>;
-    if (todosError) return <Text>Error loading saved todos</Text>;
+    if (loading) return <Text>Loading...</Text>;
+    if (error) return <Text>Error loading todos</Text>;
 
-    const todosForSelectedDate = todosData?.getSavedTodos || [];
+    const recommendationForDate = data?.getUserProfile?.recommendationsHistory?.find(
+      (history) => history.date === formattedSelectedDate
+    );
 
-    if (todosForSelectedDate.length === 0) {
+    const todosForDate = recommendationForDate?.recommendations?.todoList || [];
+    const savedTodosForDate = todosData?.getSavedTodos || [];
+    const displayTodos = savedTodosForDate.length > 0 ? savedTodosForDate : todosForDate;
+
+    if (displayTodos.length === 0) {
       return (
         <View style={styles.emptyStateContainer}>
           <Text style={styles.emptyStateText}>No tasks for this date</Text>
+          <TouchableOpacity
+            onPress={() => setTodoListVisible(true)}
+            style={[styles.retakeButton, styles.centerButton]}
+          >
+            <Text style={styles.retakeButtonText}>Generate Tasks</Text>
+          </TouchableOpacity>
         </View>
       );
     }
 
-    return todosForSelectedDate.map((todo, index) => (
-      <View key={index} style={styles.todoItem}>
-        <View style={styles.todoLeftSection}>
-          <TouchableOpacity
-            style={styles.checkboxContainer}
-            onPress={() => handleToggleStatus(todo.todoItem, todo.status)}
+    return (
+      <>
+        {displayTodos.slice(0, 3).map((todo, index) => (
+          <TouchableOpacity 
+            key={index} 
+            style={styles.todoItem}
+            onPress={() => setTodoListVisible(true)}
           >
-            <Feather
-              name={todo.status === "success" ? "check-square" : "square"}
-              size={20}
-              color="#FF9A8A"
-            />
+            <View style={styles.todoLeftSection}>
+              <TouchableOpacity style={styles.checkboxContainer}>
+                <Feather
+                  name={todo.status === "success" ? "check-square" : "square"}
+                  size={20}
+                  color="#FF9A8A"
+                />
+              </TouchableOpacity>
+              <View style={styles.todoTextContainer}>
+                <Text style={styles.todoText}>
+                  {todo.todoItem || todo}
+                </Text>
+              </View>
+            </View>
           </TouchableOpacity>
-          <View style={styles.todoTextContainer}>
-            <Text
-              style={[
-                styles.todoText,
-                todo.status === "success" && styles.completedTodoText,
-              ]}
-            >
-              {todo.todoItem} - {todo.status}
+        ))}
+        {displayTodos.length > 3 && (
+          <TouchableOpacity onPress={() => setTodoListVisible(true)}>
+            <Text style={styles.seeAllText}>
+              See All ({displayTodos.length})
             </Text>
-            <Text style={styles.todoDate}>
-              {format(parseDate(todo.date), "dd MM yyyy", { locale: id })}
-            </Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          onPress={() => handleDelete(todo.todoItem)}
-          style={styles.deleteButton}
-        >
-          <Feather name="trash-2" size={20} color="#FF9A8A" />
-        </TouchableOpacity>
-      </View>
-    ));
+          </TouchableOpacity>
+        )}
+      </>
+    );
   };
 
+  const renderPlaceCard = ({ item }) => (
+    <DetailDestination place={item} isPreview={true} />
+  );
+
+  const renderMap = () => {
+    if (!mapRegion) return <ActivityIndicator size="large" color="#FF9A8A" />;
+
+    const allCoordinates = places?.map(place => ({
+      latitude: place.coordinates?.lat || parseFloat(place.latitude),
+      longitude: place.coordinates?.lng || parseFloat(place.longitude),
+    })) || [];
+
+    if (userLocation) {
+      allCoordinates.push(userLocation);
+    }
+
+    const calcRegion = () => {
+      if (allCoordinates.length === 0) return mapRegion;
+
+      let minLat = Math.min(...allCoordinates.map(coord => coord.latitude));
+      let maxLat = Math.max(...allCoordinates.map(coord => coord.latitude));
+      let minLng = Math.min(...allCoordinates.map(coord => coord.longitude));
+      let maxLng = Math.max(...allCoordinates.map(coord => coord.longitude));
+
+      const padding = 0.05;
+      return {
+        latitude: (minLat + maxLat) / 2,
+        longitude: (minLng + maxLng) / 2,
+        latitudeDelta: (maxLat - minLat) + padding,
+        longitudeDelta: (maxLng - minLng) + padding,
+      };
+    };
+
+    return (
+      <View style={styles.mapContainer}>
+        <MapView
+          provider={PROVIDER_GOOGLE}
+          style={styles.map}
+          initialRegion={mapRegion}
+          region={calcRegion()}
+          showsUserLocation={false}
+        >
+          {userLocation && (
+            <Marker
+              coordinate={{
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+              }}
+              title="You are here"
+              description="Your current location"
+              pinColor="#4285F4"
+            />
+          )}
+
+          {places?.map((place, index) => (
+            <Marker
+              key={index}
+              coordinate={{
+                latitude: place.coordinates?.lat || parseFloat(place.latitude),
+                longitude: place.coordinates?.lng || parseFloat(place.longitude),
+              }}
+              title={place.name}
+              description={place.description}
+              pinColor="#FF9A8A"
+            />
+          ))}
+        </MapView>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          style={styles.container}
-          showsVerticalScrollIndicator={false}
-        >
+      <View style={styles.container}>
+        <ScrollView>
           <View style={styles.header}>
-            <Text style={styles.greeting}>Welcome to Karsaku 👋</Text>
-            <TouchableOpacity
-              style={styles.dateContainer}
-              onPress={showDatePicker}
-            >
-              <Feather name="calendar" size={24} color="#FF9A8A" />
+            <Text style={styles.greeting}>Your Healing Journey</Text>
+            <TouchableOpacity onPress={showDatePicker} style={styles.dateContainer}>
+              <View style={styles.monthSection}>
+                <Text style={styles.monthText}>
+                  {format(selectedDate, "MMM", { locale: id })}
+                </Text>
+              </View>
+              <View style={styles.dateSection}>
+                <Text style={styles.dateText}>
+                  {format(selectedDate, "dd")}
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
 
-          <DateTimePickerModal
-            isVisible={isDatePickerVisible}
-            mode="date"
-            onConfirm={handleConfirm}
-            onCancel={hideDatePicker}
-            date={selectedDate}
-          />
+          
 
-          {/* Places Section with Map */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Healing Places</Text>
-            {loading ? (
-              <ActivityIndicator size="large" color="#FF9A8A" />
-            ) : (
-              <MapDisplay places={places} />
-            )}
-          </View>
-
-          {/* Todo List Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Preview To Do List</Text>
+              <Text style={styles.sectionTitle}>Nearby Places</Text>
               <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("retakeQuestions", {
-                    date: formattedSelectedDate,
-                    onRetakeComplete: handleRetakeComplete,
-                  })
-                }
+                onPress={() => navigation.navigate("retakeQuestions")}
                 style={styles.retakeButton}
               >
                 <Text style={styles.retakeButtonText}>Retake Questions</Text>
               </TouchableOpacity>
             </View>
+            {renderMap()}
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Today's Tasks</Text>
+            </View>
             {renderTodoList()}
           </View>
 
-          {/* Places Cards Section - Horizontal Scroll */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              Healing Activity / Destination
-            </Text>
+            <Text style={styles.sectionTitle}>Healing Activity / Destination</Text>
             {loading ? (
               <ActivityIndicator size="large" color="#FF9A8A" />
             ) : places && places.length > 0 ? (
@@ -213,7 +283,6 @@ const HomePage = () => {
             )}
           </View>
 
-          {/* Food Video Recommendations Section - Horizontal Scroll */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Food Video Recommendations</Text>
             {loading ? (
@@ -222,14 +291,23 @@ const HomePage = () => {
               <VideoRecommendations videos={foodVideos} />
             )}
           </View>
+        </ScrollView>
 
+        <DateTimePickerModal
+          isVisible={isDatePickerVisible}
+          mode="date"
+          onConfirm={handleConfirm}
+          onCancel={hideDatePicker}
+        />
+
+        {todoListVisible && (
           <TodoList
-            todoList={todoList}
-            date={selectedDate}
+            todoList={todoList || []}
             visible={todoListVisible}
             onClose={() => setTodoListVisible(false)}
+            date={formattedSelectedDate}
           />
-        </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -267,7 +345,7 @@ const styles = StyleSheet.create({
   monthText: {
     color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: "bold", // Menebalkan teks bulan
+    fontWeight: "bold",
   },
   dateSection: {
     backgroundColor: "#FFFFFF",
@@ -290,27 +368,51 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  card: {
-    padding: 16,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 8,
-    marginBottom: 8,
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  cardText: {
-    color: "#333333",
+  horizontalScrollContainer: {
+    paddingHorizontal: 8,
   },
   seeAll: {
     textAlign: "right",
     color: "#FF9A8A",
     marginTop: 4,
   },
-  horizontalScrollContainer: {
-    paddingHorizontal: 8,
+  todoItem: {
+    padding: 16,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  todoLeftSection: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  checkboxContainer: {
+    marginRight: 12,
+  },
+  todoTextContainer: {
+    flex: 1,
+  },
+  todoText: {
+    color: "#333333",
+  },
+  emptyStateContainer: {
+    padding: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    margin: 10,
+  },
+  emptyStateText: {
+    color: '#666',
+    fontSize: 16,
+    textAlign: 'center',
     marginBottom: 10,
   },
   retakeButton: {
@@ -330,26 +432,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
-  placesList: {
-    paddingVertical: 10,
-  },
   seeAllText: {
     color: '#FF8080',
     fontSize: 14,
+    textAlign: 'right',
+    marginTop: 8,
   },
-  emptyStateContainer: {
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    margin: 10,
+  mapContainer: {
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 10,
+    marginBottom: 20,
   },
-  emptyStateText: {
-    color: '#666',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 10,
+  map: {
+    width: '100%',
+    height: '100%',
   },
 });
 

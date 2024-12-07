@@ -119,7 +119,10 @@ export default function Questions({ route }) {
         route.params.onRetakeComplete();
         navigation.goBack();
       } else {
-        navigation.navigate("Home");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Home' }],
+        });
       }
     } catch (error) {
       Alert.alert(
@@ -160,7 +163,7 @@ export default function Questions({ route }) {
 
         <Animatable.View animation="fadeInUp" style={styles.card}>
           {renderInputField(
-            "What activities did you do today?",
+            "What activities do you want to do?",
             activities,
             setActivities,
             "e.g., working, reading, exercise",
@@ -186,7 +189,7 @@ export default function Questions({ route }) {
           )}
 
           {renderInputField(
-            "Where do you live?",
+            "Where do you want to go?",
             domicile,
             setDomicile,
             "e.g., Jakarta, Indonesia",

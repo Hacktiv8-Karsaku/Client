@@ -94,15 +94,19 @@ const ProfilePage = () => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [userId, setUserId] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const formattedSelectedDate = format(selectedDate, "dd/MM/yyyy");
   const {
     loading: todosLoading,
     error: todosError,
     data: todosData,
     refetch: refetchTodos,
   } = useQuery(GET_SAVED_TODOS, {
-    variables: { date: new Date(selectedDate) },
+    variables: { date: formattedSelectedDate },
   });
   console.log({ date: new Date(selectedDate) });
+
+  console.log('All Saved Todos:', todosData?.getSavedTodos);
+  console.log('Selected Date:', formattedSelectedDate);
 
   const [
     getUserProfile,
@@ -210,12 +214,8 @@ const ProfilePage = () => {
   const hasTodoOnDate = (date) => {
     if (!todosData?.getSavedTodos) return false;
     return todosData.getSavedTodos.some((todo) => {
-      try {
-        const todoDate = parseDate(todo.date);
-        return format(todoDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd");
-      } catch {
-        return false;
-      }
+      const todoDate = new Date(todo.date);
+      return format(todoDate, "yyyy-MM-dd") === format(date, "yyyy-MM-dd");
     });
   };
 
@@ -241,9 +241,10 @@ const ProfilePage = () => {
     if (todosLoading) return <Text>Loading...</Text>;
     if (todosError) return <Text>Error loading saved todos</Text>;
 
-    const todosForSelectedDate = todosData?.getSavedTodos || [];
+    const savedTodosForDate = todosData?.getSavedTodos || [];
+    console.log('Todos for date:', savedTodosForDate);
 
-    if (todosForSelectedDate.length === 0) {
+    if (savedTodosForDate.length === 0) {
       return (
         <View style={styles.emptyStateContainer}>
           <Text style={styles.emptyStateText}>No tasks for this date</Text>
@@ -251,7 +252,7 @@ const ProfilePage = () => {
       );
     }
 
-    return todosForSelectedDate.map((todo, index) => (
+    return savedTodosForDate.map((todo, index) => (
       <View key={index} style={styles.todoItem}>
         <View style={styles.todoLeftSection}>
           <TouchableOpacity
@@ -271,10 +272,7 @@ const ProfilePage = () => {
                 todo.status === "success" && styles.completedTodoText,
               ]}
             >
-              {todo.todoItem} - {todo.status}
-            </Text>
-            <Text style={styles.todoDate}>
-              {format(parseDate(todo.date), "dd MMM", { locale: id })}
+              {todo.todoItem}
             </Text>
           </View>
         </View>
@@ -425,7 +423,7 @@ const ProfilePage = () => {
           </View>
 
           <View style={styles.savedTodosContainer}>
-            <Text style={styles.sectionTitle}>Today Task</Text>
+            <Text style={styles.sectionTitle}>Saved Tasks</Text>
             {renderTodoList()}
           </View>
 
