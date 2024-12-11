@@ -1,31 +1,34 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ImageBackground } from "react-native";
+import {
+  View,
+  Text,
+  ImageBackground,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { GOOGLE_MAPS_API_KEY } from "@env";
 
-const DetailDestination = ({ place, isPreview }) => {
-  const { name, description, placeId } = place;
-  // const placeId = "ChIJ-S4F5Bb0aS4RgVq6v81ZM4s"
+const DetailDestination = ({ place, isPreview = false }) => {
+  const navigation = useNavigation();
   const [placeImage, setPlaceImage] = useState(null);
 
   useEffect(() => {
     const fetchPlacePhoto = async () => {
+      if (!place.placeId) return;
+
       try {
         const response = await fetch(
-          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photos&key=${GOOGLE_MAPS_API_KEY}`
+          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.placeId}&fields=photos,rating&key=${GOOGLE_MAPS_API_KEY}`
         );
         const data = await response.json();
-        console.log(data);
-        
-        // const rating = data.result?.rating;
-        if (
-          data.result?.photos &&
-          data.result.photos.length > 0
-        ) {
-          const photoReference = data.result.photos[0].photo_reference;
 
-          const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${isPreview ? 150 : 250
-            }&photoreference=${photoReference}&key=${GOOGLE_MAPS_API_KEY}`;
+        if (data.result?.photos && data.result.photos.length > 0) {
+          const photoReference = data.result.photos[0].photo_reference;
+          const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${
+            isPreview ? 400 : 800
+          }&photoreference=${photoReference}&key=${GOOGLE_MAPS_API_KEY}`;
 
           setPlaceImage(photoUrl);
         }
@@ -34,76 +37,125 @@ const DetailDestination = ({ place, isPreview }) => {
       }
     };
 
-    if (placeId) {
-      fetchPlacePhoto();
+    fetchPlacePhoto();
+  }, [place.placeId, isPreview]);
+
+  const handlePress = () => {
+    if (!isPreview) {
+      navigation.navigate("PlaceDetail", { place });
     }
-  }, [placeId, isPreview]);
+  };
+
+  if (!place || !place.name) {
+    return null;
+  }
+
+  const fallbackImage =
+    "https://i.pinimg.com/236x/39/89/de/3989dedb6cfedb5f7adab991d1750ab0.jpg";
 
   return (
-    <View style={[styles.container, isPreview && styles.preview]}>
+    <TouchableOpacity
+      onPress={handlePress}
+      style={[
+        styles.container,
+        isPreview ? styles.previewContainer : styles.fullContainer,
+      ]}
+    >
       <ImageBackground
-        source={{
-          uri:
-            placeImage ||
-            "https://statik.tempo.co/data/2021/07/24/id_1037336/1037336_720.jpg",
-        }}
-        style={[styles.background, isPreview && styles.previewBackground]}
+        source={{ uri: placeImage || fallbackImage }}
+        style={styles.background}
+        imageStyle={styles.backgroundImage}
       >
         <LinearGradient
-          colors={["rgba(0, 0, 0, 0.6)", "transparent"]}
-          start={[0, 1]}
-          end={[0, 0]}
+          colors={["transparent", "rgba(0,0,0,0.8)"]}
           style={styles.gradient}
-        />
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>{name}</Text>
-          <Text style={styles.rating}>Rating: 0/5</Text>
-          {!isPreview && <Text style={styles.description}>{description}</Text>}
-        </View>
+        >
+          <View style={styles.content}>
+            <Text style={styles.title} numberOfLines={2}>
+              {place.name}
+            </Text>
+            <Text style={styles.location} numberOfLines={1}>
+              {place.address}
+            </Text>
+            <View style={styles.ratingContainer}>
+              <Text style={styles.rating}>⭐ {place.rating}</Text>
+            </View>
+            {!isPreview && place.description && (
+              <Text style={styles.description} numberOfLines={3}>
+                {place.description}
+              </Text>
+            )}
+          </View>
+        </LinearGradient>
       </ImageBackground>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    borderRadius: 16,
+    borderRadius: 15,
     overflow: "hidden",
-    marginBottom: 16,
-    height: 250,
+    backgroundColor: "#fff",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  preview: {
-    width: 250,
-    height: 150,
+  previewContainer: {
+    width: 300,
     marginHorizontal: 8,
+    marginVertical: 8,
+  },
+  fullContainer: {
+    width: "100%",
+    marginVertical: 8,
   },
   background: {
-    height: 250,
     width: "100%",
-    justifyContent: "flex-end",
+    height: 200,
   },
-  previewBackground: {
-    height: 150,
+  backgroundImage: {
+    borderRadius: 15,
   },
   gradient: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "100%",
+    justifyContent: "flex-end",
   },
-  textContainer: {
-    padding: 10,
+  content: {
+    padding: 15,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#FFFFFF",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  location: {
+    fontSize: 14,
+    color: "#fff",
+    opacity: 0.8,
+    marginBottom: 4,
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   rating: {
+    color: "#fff",
     fontSize: 14,
-    color: "#FFFFFF",
+    fontWeight: "bold",
   },
   description: {
-    fontSize: 12,
-    color: "#FFFFFF",
+    color: "#fff",
+    marginTop: 8,
+    fontSize: 14,
+    opacity: 0.9,
   },
 });
 

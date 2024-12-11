@@ -4,7 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import { onError } from "@apollo/client/link/error";
 
 const httpLink = createHttpLink({
-  uri: "https://1ddc-118-136-85-241.ngrok-free.app/",
+  uri: "https://karsaku.abdulridhoramadhan.my.id/",
 });
 
 const authLink = setContext(async (_, { headers }) => {

@@ -44,6 +44,8 @@ export const GET_RECOMMENDATIONS = gql`
             lat
             lng
           }
+          rating
+          placeId
         }
         foodVideos {
           title
@@ -90,8 +92,29 @@ export const GET_DESTINATIONS = gql`
 export const REGENERATE_TODOS = gql`
   mutation RegenerateTodos($date: String) {
     regenerateTodos(date: $date) {
+      _id
       recommendations {
         todoList
+        places {
+          name
+          description
+          address
+          coordinates {
+            lat
+            lng
+          }
+          placeId
+          type
+          rating
+          uri
+          imageCategory
+        }
+        foodVideos {
+          title
+          url
+          thumbnail
+          description
+        }
       }
     }
   }

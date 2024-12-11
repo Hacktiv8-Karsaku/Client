@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,8 @@ import {
   Modal,
   Alert,
   ScrollView,
-  Dimensions,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { gql, useMutation, useQuery } from "@apollo/client";
 import * as Calendar from "expo-calendar";
@@ -39,6 +39,23 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
   const { data: savedTodosData, refetch } = useQuery(GET_SAVED_TODOS, {
     variables: { date },
   });
+
+  const { data: recommendationsData } = useQuery(GET_RECOMMENDATIONS, {
+    variables: { date },
+  });
+
+  const savedTodos = savedTodosData?.getSavedTodos || [];
+  const recommendationHistory =
+    recommendationsData?.getUserProfile?.recommendationsHistory || [];
+  const currentDateRecommendations =
+    recommendationHistory.find((history) => history.date === date)
+      ?.recommendations?.todoList || [];
+
+  const displayTodoList =
+    currentDateRecommendations.length > 0
+      ? currentDateRecommendations
+      : todoList;
+
   const [saveTodo] = useMutation(SAVE_TODO);
   const [regenerateTodos, { loading: regenerating }] =
     useMutation(REGENERATE_TODOS);
@@ -46,8 +63,7 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [localTodoList, setLocalTodoList] = useState([]);
-
-  const savedTodos = savedTodosData?.getSavedTodos || [];
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (todoList && todoList.length > 0) {
@@ -66,16 +82,22 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
       setIsRegenerating(true);
       const response = await regenerateTodos({
         variables: { date },
-        refetchQueries: [{ query: GET_RECOMMENDATIONS }],
+        refetchQueries: [
+          { query: GET_RECOMMENDATIONS, variables: { date } },
+          { query: GET_SAVED_TODOS, variables: { date } },
+        ],
       });
 
-      setTimeout(() => {
-        setIsRegenerating(false);
-        Alert.alert("Success", "Todo list has been regenerated!");
-      }, 1500);
+      const newRecommendations =
+        response.data?.regenerateTodos?.recommendations?.todoList || [];
+      setLocalTodoList(newRecommendations);
+
+      Alert.alert("Success", "Todo list has been regenerated!");
     } catch (error) {
+      console.error("Error regenerating todos:", error);
+      Alert.alert("Error", "Failed to regenerate todo list.");
+    } finally {
       setIsRegenerating(false);
-      Alert.alert("Error", "Failed to regenerate todo list");
     }
   };
 
@@ -83,7 +105,11 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
     setLoadingTodo(todo);
     setShowSuccess(false);
     try {
-      console.log(date, "<<<date");
+      const existingTodo = savedTodos.find((t) => t.todoItem === todo);
+      if (existingTodo) {
+        Alert.alert("Todo already exists for this date");
+        return;
+      }
 
       await saveTodo({
         variables: { todoItem: todo, date: date },
@@ -121,8 +147,19 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
     }
   };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } catch (error) {
+      console.error("Error refreshing:", error);
+      Alert.alert("Error", "Failed to refresh todo list");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
+
   const renderTodoItem = (todo, index) => {
-    console.log(savedTodos, "<<<saveTodo");
     const isSaved = savedTodos.map((el) => el.todoItem).includes(todo);
     const isLoading = loadingTodo === todo;
     const showRegeneratingOverlay = isRegenerating && !isSaved;
@@ -200,28 +237,18 @@ const TodoList = ({ todoList = [], visible, onClose, date }) => {
         <ScrollView
           style={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#FF9A8A"]}
+              tintColor="#FF9A8A"
+            />
+          }
         >
           {localTodoList?.map((todo, index) => renderTodoItem(todo, index))}
         </ScrollView>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[
-              styles.regenerateButton,
-              regenerating && styles.regeneratingButton,
-            ]}
-            onPress={handleRegenerateTodos}
-            disabled={regenerating}
-          >
-            <Feather
-              name="refresh-cw"
-              size={20}
-              color="#FF9A8A"
-              style={styles.buttonIcon}
-            />
-            <Text style={styles.regenerateButtonText}>
-              {regenerating ? "Regenerating..." : "Regenerate"}
-            </Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Feather
               name="x"

@@ -5,18 +5,25 @@ import { AuthContext } from "./context/AuthContext";
 import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { ActivityIndicator, View } from "react-native";
+import SplashScreen from "./components/SplashScreen";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [shouldAskQuestions, setShouldAskQuestions] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
+    setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
     async function checkToken() {
       try {
         const token = await SecureStore.getItemAsync("access_token");
-        const questionStatus = await SecureStore.getItemAsync("questions_completed");
-        
+        const questionStatus = await SecureStore.getItemAsync(
+          "questions_completed"
+        );
+
         if (token) {
           setIsSignedIn(true);
           setShouldAskQuestions(questionStatus !== "true");
@@ -35,6 +42,10 @@ export default function App() {
     checkToken();
   }, []);
 
+  if (showSplash) {
+    return <SplashScreen />;
+  }
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -45,12 +56,12 @@ export default function App() {
 
   return (
     <ApolloProvider client={client}>
-      <AuthContext.Provider 
-        value={{ 
-          isSignedIn, 
-          setIsSignedIn, 
-          shouldAskQuestions, 
-          setShouldAskQuestions 
+      <AuthContext.Provider
+        value={{
+          isSignedIn,
+          setIsSignedIn,
+          shouldAskQuestions,
+          setShouldAskQuestions,
         }}
       >
         <RootStack />

@@ -59,7 +59,6 @@ export default function Login() {
       setShouldAskQuestions(result.data.login.shouldAskQuestions);
       setIsSignedIn(true);
     } catch (error) {
-      console.log(error);
       Alert.alert("Login Error", error.message);
     }
   };
