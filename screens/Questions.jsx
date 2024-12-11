@@ -6,8 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  View,
-  Animated,
   ActivityIndicator,
 } from "react-native";
 import { gql, useMutation } from "@apollo/client";
@@ -41,15 +39,36 @@ const UPDATE_USER_PREFERENCES = gql`
     ) {
       _id
       job
+      dailyActivities
       stressLevel
+      preferredFoods
+      avoidedFoods
+      domicile
+      recommendations {
+        todoList
+        places {
+          name
+          description
+          address
+          coordinates {
+            lat
+            lng
+          }
+          placeId
+        }
+        foodVideos {
+          title
+          url
+          thumbnail
+          description
+        }
+      }
       lastQuestionDate
     }
   }
 `;
 
 export default function Questions({ route }) {
-  console.log(route.params, "<<<route.params");
-
   const { setShouldAskQuestions } = useContext(AuthContext);
   const navigation = useNavigation();
 
@@ -64,33 +83,56 @@ export default function Questions({ route }) {
   const [updatePreferences] = useMutation(UPDATE_USER_PREFERENCES);
 
   const handleSubmit = async () => {
+    if (!activities || !domicile) {
+      Alert.alert("Error", "Please fill in all required fields");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data } = await updatePreferences({
         variables: {
-          dailyActivities: activities.split(",").map((item) => item.trim()),
-          stressLevel,
-          preferredFoods: preferredFoods.split(",").map((item) => item.trim()),
-          avoidedFoods: avoidedFoods.split(",").map((item) => item.trim()),
+          dailyActivities: activities
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+          stressLevel: parseInt(stressLevel),
+          preferredFoods: preferredFoods
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+          avoidedFoods: avoidedFoods
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
           domicile: domicile.trim(),
-          date,
+          date: date,
         },
-        refetchQueries: [{ query: GET_RECOMMENDATIONS }],
+        refetchQueries: [
+          {
+            query: GET_RECOMMENDATIONS,
+            variables: { date },
+          },
+        ],
       });
 
       await SecureStore.setItemAsync("questions_completed", "true");
       setShouldAskQuestions(false);
 
-      if (route.name === "retakeQuestions") {
+      if (route?.params?.onRetakeComplete) {
+        route.params.onRetakeComplete();
         navigation.goBack();
-        if (route.params?.onRetakeComplete) {
-          route.params.onRetakeComplete();
-        }
       } else {
-        navigation.replace("HomePage");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Home" }],
+        });
       }
     } catch (error) {
-      Alert.alert("Error", error.message);
+      Alert.alert(
+        "Error",
+        error.message || "Failed to update preferences. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +167,7 @@ export default function Questions({ route }) {
 
         <Animatable.View animation="fadeInUp" style={styles.card}>
           {renderInputField(
-            "What activities did you do today?",
+            "What activities do you want to do?",
             activities,
             setActivities,
             "e.g., working, reading, exercise",
@@ -151,7 +193,7 @@ export default function Questions({ route }) {
           )}
 
           {renderInputField(
-            "Where do you live?",
+            "Where do you want to go?",
             domicile,
             setDomicile,
             "e.g., Jakarta, Indonesia",
@@ -159,7 +201,7 @@ export default function Questions({ route }) {
           )}
 
           <Animatable.View animation="fadeInUp" delay={600}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.button, isLoading && styles.buttonDisabled]}
               onPress={handleSubmit}
               disabled={isLoading}
@@ -194,7 +236,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   title: {
     fontSize: 28,
@@ -260,21 +302,21 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 200,
-    width: '100%',
-    position: 'relative',
+    width: "100%",
+    position: "relative",
   },
   headerGradient: {
-    height: '100%',
-    width: '100%',
-    position: 'absolute',
+    height: "100%",
+    width: "100%",
+    position: "absolute",
   },
   profileCard: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     marginHorizontal: 16,
     marginTop: -50,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -284,11 +326,11 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   todoCard: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     margin: 8,
     padding: 16,
     borderRadius: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -298,7 +340,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   datePicker: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 8,
     marginTop: 8,
   },

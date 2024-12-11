@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -9,11 +9,9 @@ import {
   FlatList,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import { useQuery, useLazyQuery } from "@apollo/client";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useLazyQuery } from "@apollo/client";
 import MapDisplay from "../components/MapView";
 import { GET_RECOMMENDATIONS } from "../graphql/queries";
 import TodoList from "../components/TodoList";
@@ -32,11 +30,8 @@ const HomePage = () => {
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
   useEffect(() => {
-    console.log("Fetching recommendations");
     getRecommendations({ variables: { date: selectedDate.toISOString() } });
   }, [selectedDate]);
-
-  console.log({ loading, error, data }, "data");
 
   const renderPlaceCard = ({ item }) => (
     <DetailDestination place={item} isPreview={true} />
@@ -52,16 +47,30 @@ const HomePage = () => {
 
   const handleConfirm = (date) => {
     setSelectedDate(date);
-    console.log(date, "<<<date");
-
     hideDatePicker();
   };
 
-  const handleRetakeComplete = () => {
-    // Refresh recommendations data
-    getRecommendations({ 
+  useFocusEffect(
+    useCallback(() => {
+      getRecommendations({
+        variables: { date: selectedDate.toISOString() },
+        fetchPolicy: "network-only",
+      });
+    }, [selectedDate])
+  );
+
+  const onTodoListClose = async () => {
+    await getRecommendations({
       variables: { date: selectedDate.toISOString() },
-      fetchPolicy: 'network-only' // Memastikan data diambil ulang dari server
+      fetchPolicy: "network-only",
+    });
+    setTodoListVisible(false);
+  };
+
+  const handleRetakeComplete = () => {
+    getRecommendations({
+      variables: { date: selectedDate.toISOString() },
+      fetchPolicy: "network-only",
     });
   };
 
@@ -108,7 +117,7 @@ const HomePage = () => {
                 onPress={() =>
                   navigation.navigate("retakeQuestions", {
                     date: new Date(selectedDate).toISOString(),
-                    onRetakeComplete: handleRetakeComplete, // Menambahkan callback
+                    onRetakeComplete: handleRetakeComplete,
                   })
                 }
                 style={styles.retakeButton}
@@ -151,7 +160,7 @@ const HomePage = () => {
                 <FlatList
                   data={places}
                   renderItem={renderPlaceCard}
-                  keyExtractor={(item, index) => index.toString()}
+                  keyExtractor={(item) => item.id}
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.horizontalScrollContainer}
@@ -160,7 +169,7 @@ const HomePage = () => {
                   onPress={() => navigation.navigate("Destination")}
                   style={styles.seeAll}
                 >
-                  <Text style={styles.seeAll}>See All</Text>
+                  <Text style={styles.seeAll}>See Nearby Places</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -168,9 +177,8 @@ const HomePage = () => {
             )}
           </View>
 
-          {/* Food Video Recommendations Section - Horizontal Scroll */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Food Video Recommendations</Text>
+            <Text style={styles.sectionTitle}>Youtube Video Recommendations</Text>
             {loading ? (
               <ActivityIndicator size="large" color="#FF9A8A" />
             ) : (
@@ -182,7 +190,7 @@ const HomePage = () => {
             todoList={todoList}
             date={selectedDate}
             visible={todoListVisible}
-            onClose={() => setTodoListVisible(false)}
+            onClose={onTodoListClose}
           />
         </ScrollView>
       </View>
@@ -222,7 +230,7 @@ const styles = StyleSheet.create({
   monthText: {
     color: "#FFFFFF",
     fontSize: 12,
-    fontWeight: "bold", // Menebalkan teks bulan
+    fontWeight: "bold",
   },
   dateSection: {
     backgroundColor: "#FFFFFF",
@@ -275,7 +283,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   centerButton: {
-    alignSelf: 'center',
+    alignSelf: "center",
     marginVertical: 10,
     paddingHorizontal: 20,
     paddingVertical: 8,

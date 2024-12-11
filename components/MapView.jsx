@@ -52,7 +52,7 @@ const MapDisplay = ({ places }) => {
           longitudeDelta: 0.0421,
         }}
         onRegionChange={(region) => {
-          // console.log('Current region:', region);
+          console.log('Current region:', region);
         }}
       >
         {/* Current Location Marker */}

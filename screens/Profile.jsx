@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useContext,
+} from "react";
 import {
   View,
   Text,
@@ -8,10 +14,10 @@ import {
   FlatList,
   ScrollView,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { Feather, Entypo } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import * as SecureStore from "expo-secure-store";
 import { Menu, Provider } from "react-native-paper";
@@ -25,28 +31,13 @@ import {
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { LinearGradient } from 'expo-linear-gradient';
-
-const ImageCard = ({ imageUrl, title }) => {
-  return (
-    <TouchableOpacity style={styles.card}>
-      <Image
-        source={{ uri: imageUrl }}
-        style={styles.image}
-        resizeMode="cover"
-      />
-      <View style={styles.overlay}>
-        <Text style={styles.cardTitle}>{title}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
 
 const generateDates = () => {
   const dates = [];
   const today = new Date();
 
-  // Generate 30 hari sebelum dan sesudah hari ini
   for (let i = -30; i <= 30; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
@@ -55,9 +46,8 @@ const generateDates = () => {
   return dates;
 };
 
-// Tambahkan fungsi untuk mendapatkan nama bulan
 const getMonthName = (date) => {
-  return format(date, 'MMMM yyyy', { locale: id });
+  return format(date, "MMMM yyyy", { locale: id });
 };
 
 const DestinationCard = ({ destination }) => {
@@ -68,7 +58,7 @@ const DestinationCard = ({ destination }) => {
         style={styles.destinationImage}
       />
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.8)']}
+        colors={["transparent", "rgba(0,0,0,0.8)"]}
         style={styles.gradientOverlay}
       >
         <View style={styles.destinationInfo}>
@@ -78,10 +68,6 @@ const DestinationCard = ({ destination }) => {
               <Entypo name="location-pin" size={16} color="#FFF" />
               <Text style={styles.detailText}>{destination.location}</Text>
             </View>
-            <View style={styles.detailItem}>
-              <Feather name="star" size={16} color="#FFF" />
-              <Text style={styles.detailText}>{destination.rating}</Text>
-            </View>
           </View>
         </View>
       </LinearGradient>
@@ -90,7 +76,7 @@ const DestinationCard = ({ destination }) => {
 };
 
 const ProfilePage = () => {
-  const { setIsSignedIn } = useContext(AuthContext);
+  const { isSignedIn, setIsSignedIn } = useContext(AuthContext);
   const [menuVisible, setMenuVisible] = useState(false);
   const [userId, setUserId] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -102,7 +88,6 @@ const ProfilePage = () => {
   } = useQuery(GET_SAVED_TODOS, {
     variables: { date: new Date(selectedDate) },
   });
-  console.log({ date: new Date(selectedDate) });
 
   const [
     getUserProfile,
@@ -110,14 +95,29 @@ const ProfilePage = () => {
       loading: profileLoading,
       error: profileError,
       data: profileData,
-      refetch,
+      refetch: refetchProfile,
     },
   ] = useLazyQuery(GET_USER_PROFILE);
+
   const [deleteTodo] = useMutation(DELETE_TODO, { variables: { id: userId } });
   const [updateTodoStatus] = useMutation(UPDATE_TODO_STATUS);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const dates = generateDates();
-  console.log(selectedDate, "<<<selectedDate");
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    refetchProfile();
+    refetchTodos();
+  }, [userId, refetchProfile]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      refetchTodos();
+      refetchProfile();
+      setRefreshing(false);
+    }, 1000);
+  }, []);
 
   const placeToGoData = [
     {
@@ -125,32 +125,22 @@ const ProfilePage = () => {
       uri: "https://cdn.idntimes.com/content-images/community/2022/09/tempat-wisata-dunia-yang-bikin-pengunjung-bahagia-tempat-wisata-dunia-paling-bahagia-bali-destinasi-wisata-paling-bahagia-bali-indoensia-wisata-9cde86371d7fc78c91ae80a6ffab250e-404157d92ecd7d9e35661cbe798808dc.jpg",
       title: "Bali",
       location: "Indonesia",
-      rating: "4.8",
-      description: "Pulau dewata dengan keindahan alam dan budaya yang menakjubkan"
+      description:
+        "Pulau dewata dengan keindahan alam dan budaya yang menakjubkan",
     },
     {
       id: "2",
-      uri: "https://cdn1.sisiplus.co.id/media/sisiplus/asset/uploads/artikel/g2OEbKl2aTEIp1x5hFNYEE9ad615uVenBexDAcVW.jpg",
+      uri: "https://i.pinimg.com/736x/a0/7f/07/a07f078b53ee220baf76dd50c5d261b7.jpg",
       title: "Yogyakarta",
       location: "Indonesia",
-      rating: "4.7",
-      description: "Kota budaya dengan berbagai tempat bersejarah"
+      description: "Kota budaya dengan berbagai tempat bersejarah",
     },
     {
       id: "3",
-      uri: "https://img.inews.co.id/media/600/files/networks/2024/05/13/d4b74_rans-nusantara-hebat.jpeg",
-      title: "Nusantara",
-      location: "Indonesia",
-      rating: "4.9",
-      description: "Destinasi wisata terkenal di Indonesia"
-    },
-    {
-      id: "4",
       uri: "https://media.disneylandparis.com/d4th/en-int/images/HD13302_2_2050jan01_world_disneyland-park-dlp-website-visual_5-2_tcm787-248638.jpg?w=1920",
       title: "Disneyland",
       location: "California",
-      rating: "4.7",
-      description: "Taman hiburan terkenal di Amerika Serikat"
+      description: "Taman hiburan terkenal di Amerika Serikat",
     },
   ];
 
@@ -173,7 +163,7 @@ const ProfilePage = () => {
         onPress: async () => {
           try {
             await deleteTodo({
-              variables: { todoItem },
+              variables: { todoItem: todoItem },
               refetchQueries: [
                 {
                   query: GET_SAVED_TODOS,
@@ -196,7 +186,6 @@ const ProfilePage = () => {
     hideDatePicker();
   };
 
-  // Fungsi untuk memastikan tanggal valid
   const parseDate = (dateString) => {
     try {
       const date = new Date(dateString);
@@ -206,9 +195,9 @@ const ProfilePage = () => {
     }
   };
 
-  // Fungsi untuk mengecek todo pada tanggal tertentu
   const hasTodoOnDate = (date) => {
-    if (!todosData?.getSavedTodos) return false;
+    if (!todosData?.getSavedTodos?.length) return false;
+
     return todosData.getSavedTodos.some((todo) => {
       try {
         const todoDate = parseDate(todo.date);
@@ -221,8 +210,6 @@ const ProfilePage = () => {
 
   const handleToggleStatus = async (todoItem, currentStatus) => {
     try {
-      console.log({ todoItem, currentStatus });
-
       await updateTodoStatus({
         variables: {
           todoItem: todoItem,
@@ -236,10 +223,8 @@ const ProfilePage = () => {
     }
   };
 
-  // Fungsi render todo list yang diperbarui
   const renderTodoList = () => {
     if (todosLoading) return <Text>Loading...</Text>;
-    if (todosError) return <Text>Error loading saved todos</Text>;
 
     const todosForSelectedDate = todosData?.getSavedTodos || [];
 
@@ -288,33 +273,45 @@ const ProfilePage = () => {
     ));
   };
 
-  useEffect(() => {
-    getUserProfile();
-  }, []);
-
-  // Tambahkan useRef untuk ScrollView
   const scrollViewRef = useRef(null);
 
-  // Tambahkan useEffect untuk mengatur posisi scroll awal
   useEffect(() => {
-    // Menunggu render komponen selesai
     setTimeout(() => {
       if (scrollViewRef.current) {
-        // Hitung posisi scroll ke tengah
-        // 40 adalah width dari setiap dateColumn
-        // 30 adalah jumlah hari sebelum hari ini
         const scrollToPosition = 30 * 40;
-        scrollViewRef.current.scrollTo({ x: scrollToPosition, animated: false });
+        scrollViewRef.current.scrollTo({
+          x: scrollToPosition,
+          animated: false,
+        });
       }
     }, 100);
   }, []);
 
+  const navigation = useNavigation();
+
+  const handleGoBack = () => {
+    navigation.goBack();
+  };
+
   return (
     <Provider>
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView style={styles.container}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.scrollView}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FF9A8A"
+              colors={["#FF9A8A"]}
+            />
+          }
+        >
           <View style={styles.header}>
-            <Feather name="arrow-left" size={24} color="#FF9A8A" />
+            <TouchableOpacity onPress={handleGoBack}>
+              <Feather name="arrow-left" size={24} color="#FF9A8A" />
+            </TouchableOpacity>
             <Text style={styles.title}>Your Profile</Text>
             <Menu
               visible={menuVisible}
@@ -383,12 +380,10 @@ const ProfilePage = () => {
           </View>
 
           <View style={styles.calendarSection}>
-            <Text style={styles.monthText}>
-              {getMonthName(selectedDate)}
-            </Text>
-            <ScrollView 
+            <Text style={styles.monthText}>{getMonthName(selectedDate)}</Text>
+            <ScrollView
               ref={scrollViewRef}
-              horizontal 
+              horizontal
               showsHorizontalScrollIndicator={false}
             >
               <View>
@@ -396,12 +391,14 @@ const ProfilePage = () => {
                   {dates.map((date, i) => (
                     <View key={`day-${i}`} style={styles.dateColumn}>
                       <Text style={styles.weekDayText}>
-                        {format(date, 'E', { locale: id })}
+                        {format(date, "E", { locale: id })}
                       </Text>
                       <TouchableOpacity
                         style={[
                           styles.dateBox,
-                          format(date, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd") && styles.selectedDate,
+                          format(date, "yyyy-MM-dd") ===
+                            format(selectedDate, "yyyy-MM-dd") &&
+                            styles.selectedDate,
                           hasTodoOnDate(date) && styles.hasTaskDate,
                         ]}
                         onPress={() => handleConfirm(date)}
@@ -409,13 +406,19 @@ const ProfilePage = () => {
                         <Text
                           style={[
                             styles.dateNumber,
-                            format(date, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd") && styles.todayText,
-                            format(date, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd") && styles.selectedDateText,
+                            format(date, "yyyy-MM-dd") ===
+                              format(new Date(), "yyyy-MM-dd") &&
+                              styles.todayText,
+                            format(date, "yyyy-MM-dd") ===
+                              format(selectedDate, "yyyy-MM-dd") &&
+                              styles.selectedDateText,
                           ]}
                         >
                           {format(date, "d")}
                         </Text>
-                        {hasTodoOnDate(date) && <View style={styles.taskIndicator} />}
+                        {hasTodoOnDate(date) && (
+                          <View style={styles.taskIndicator} />
+                        )}
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -425,7 +428,7 @@ const ProfilePage = () => {
           </View>
 
           <View style={styles.savedTodosContainer}>
-            <Text style={styles.sectionTitle}>Today Task</Text>
+            <Text style={styles.sectionTitle}>Saved Task</Text>
             {renderTodoList()}
           </View>
 
@@ -440,9 +443,6 @@ const ProfilePage = () => {
           <View style={styles.placeToGoContainer}>
             <View style={styles.sectionHeader}>
               <Text style={styles.placeToGoTitle}>Place To Go</Text>
-              <TouchableOpacity>
-                <Text style={styles.viewAllButton}>View all</Text>
-              </TouchableOpacity>
             </View>
             <FlatList
               data={placeToGoData}
@@ -500,33 +500,33 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     paddingHorizontal: 8,
-    maxWidth: '33.33%', // Memastikan setiap item mengambil sepertiga ruang
+    maxWidth: "33.33%",
   },
   pointsText: {
     fontSize: 14,
     marginTop: 4,
     color: "#FF9A8A",
-    textAlign: 'center',
-    ellipsizeMode: 'tail',
+    textAlign: "center",
+    ellipsizeMode: "tail",
   },
   placeToGoContainer: {
     marginVertical: 20,
     marginBottom: 60,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     marginBottom: 12,
   },
   placeToGoTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   viewAllButton: {
-    color: '#FF9A8A',
+    color: "#FF9A8A",
     fontSize: 14,
   },
   destinationList: {
@@ -537,40 +537,40 @@ const styles = StyleSheet.create({
     height: 200,
     marginRight: 16,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   destinationImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   gradientOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: '50%',
+    height: "50%",
     padding: 16,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   destinationInfo: {
     gap: 8,
   },
   destinationTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFF',
+    fontWeight: "bold",
+    color: "#FFF",
   },
   destinationDetails: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 16,
   },
   detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   detailText: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 14,
   },
   card: {
@@ -665,17 +665,17 @@ const styles = StyleSheet.create({
   },
   monthText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 12,
-    textAlign: 'center',
-    color: '#333',
+    textAlign: "center",
+    color: "#333",
   },
   datesRow: {
     flexDirection: "row",
     paddingHorizontal: 8,
   },
   dateColumn: {
-    alignItems: 'center',
+    alignItems: "center",
     marginHorizontal: 2,
     width: 40,
   },

@@ -66,7 +66,6 @@ export default function Register() {
       });
       navigation.navigate("Login");
     } catch (error) {
-      console.log(error);
       Alert.alert("Registration Error", error.message);
     } finally {
       setLoading(false);
