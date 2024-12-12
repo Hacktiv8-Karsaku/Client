@@ -1,28 +1,50 @@
-import { createStaticNavigation } from "@react-navigation/native";
 import RootStack from "./navigations/StackNav";
 import { ApolloProvider } from "@apollo/client";
 import client from "./config/apollo";
 import { AuthContext } from "./context/AuthContext";
 import { useEffect, useState } from "react";
-
-const Navigation = createStaticNavigation(RootStack);
 import * as SecureStore from "expo-secure-store";
 import { ActivityIndicator, View } from "react-native";
+import SplashScreen from "./components/SplashScreen";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [shouldAskQuestions, setShouldAskQuestions] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
+    setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
     async function checkToken() {
-      const token = await SecureStore.getItemAsync("access_token");
-      if (token) {
-        setIsSignedIn(true);
+      try {
+        const token = await SecureStore.getItemAsync("access_token");
+        const questionStatus = await SecureStore.getItemAsync(
+          "questions_completed"
+        );
+
+        if (token) {
+          setIsSignedIn(true);
+          setShouldAskQuestions(questionStatus !== "true");
+        } else {
+          setIsSignedIn(false);
+          setShouldAskQuestions(true);
+        }
+      } catch (error) {
+        console.error("Error checking auth state:", error);
+        setIsSignedIn(false);
+        setShouldAskQuestions(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     checkToken();
   }, []);
+
+  if (showSplash) {
+    return <SplashScreen />;
+  }
 
   if (loading) {
     return (
@@ -34,8 +56,15 @@ export default function App() {
 
   return (
     <ApolloProvider client={client}>
-      <AuthContext.Provider value={{ isSignedIn, setIsSignedIn }}>
-        <Navigation />
+      <AuthContext.Provider
+        value={{
+          isSignedIn,
+          setIsSignedIn,
+          shouldAskQuestions,
+          setShouldAskQuestions,
+        }}
+      >
+        <RootStack />
       </AuthContext.Provider>
     </ApolloProvider>
   );

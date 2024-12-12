@@ -1,9 +1,10 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 import * as SecureStore from "expo-secure-store";
+import { onError } from "@apollo/client/link/error";
 
 const httpLink = createHttpLink({
-  uri: "https://7683-139-228-111-126.ngrok-free.app/",
+  uri: "https://karsaku.abdulridhoramadhan.my.id/",
 });
 
 const authLink = setContext(async (_, { headers }) => {
@@ -16,8 +17,18 @@ const authLink = setContext(async (_, { headers }) => {
   };
 });
 
+const errorLink = onError(({ graphQLErrors, networkError }) => {
+  if (graphQLErrors)
+    graphQLErrors.forEach(({ message, locations, path }) =>
+      console.log(
+        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
+      )
+    );
+  if (networkError) console.log(`[Network error]: ${networkError}`);
+});
+
 const client = new ApolloClient({
-  link: authLink.concat(httpLink),
+  link: errorLink.concat(authLink.concat(httpLink)),
   cache: new InMemoryCache(),
 });
 
